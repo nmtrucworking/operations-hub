@@ -1,0 +1,168 @@
+{
+  "system": "Operations Hub",
+  "document_set": "21 Use Case groups",
+  "version": "2.0",
+  "language": "vi",
+  "files": [
+    "00_Actors.md",
+    "00_README.md",
+    "00_Traceability_Matrix.md",
+    "00_Use_Case_Tong_Quat.md",
+    "00_CHANGELOG_v2.md",
+    "00_Sub_UseCase_Catalog.md",
+    "01_UC-TENANT.md",
+    "02_UC-AUTH.md",
+    "03_UC-USER.md",
+    "04_UC-RBAC.md",
+    "05_UC-ORG.md",
+    "06_UC-BRAND.md",
+    "07_UC-MODULE.md",
+    "08_UC-SETTING.md",
+    "09_UC-MEMBER.md",
+    "10_UC-REQUEST.md",
+    "11_UC-DOCUMENT.md",
+    "12_UC-FINANCE.md",
+    "13_UC-ASSET.md",
+    "14_UC-MEETING.md",
+    "15_UC-DISCIPLINE.md",
+    "16_UC-EVALUATION.md",
+    "17_UC-COMPETITION.md",
+    "18_UC-NOTIFICATION.md",
+    "19_UC-DASHBOARD.md",
+    "20_UC-AI.md",
+    "21_UC-AUDIT.md",
+    "Operations_Hub_21UC_Combined.md"
+  ],
+  "use_cases": [
+    {
+      "code": "UC-TENANT",
+      "title": "Quản trị nền tảng SaaS và tenant",
+      "file": "01_UC-TENANT.md"
+    },
+    {
+      "code": "UC-AUTH",
+      "title": "Xác thực và quản lý phiên",
+      "file": "02_UC-AUTH.md"
+    },
+    {
+      "code": "UC-USER",
+      "title": "Quản lý tài khoản người dùng",
+      "file": "03_UC-USER.md"
+    },
+    {
+      "code": "UC-RBAC",
+      "title": "Quản lý vai trò và phân quyền",
+      "file": "04_UC-RBAC.md"
+    },
+    {
+      "code": "UC-ORG",
+      "title": "Quản lý thông tin và cơ cấu tổ chức",
+      "file": "05_UC-ORG.md"
+    },
+    {
+      "code": "UC-BRAND",
+      "title": "Quản lý branding và giao diện tổ chức",
+      "file": "06_UC-BRAND.md"
+    },
+    {
+      "code": "UC-MODULE",
+      "title": "Cấu hình module và quy trình nghiệp vụ",
+      "file": "07_UC-MODULE.md"
+    },
+    {
+      "code": "UC-SETTING",
+      "title": "Thiết lập cá nhân",
+      "file": "08_UC-SETTING.md"
+    },
+    {
+      "code": "UC-MEMBER",
+      "title": "Quản lý thành viên và membership",
+      "file": "09_UC-MEMBER.md"
+    },
+    {
+      "code": "UC-REQUEST",
+      "title": "Quản lý đơn từ và yêu cầu nội bộ",
+      "file": "10_UC-REQUEST.md"
+    },
+    {
+      "code": "UC-DOCUMENT",
+      "title": "Quản lý văn bản, biểu mẫu và mẫu tài liệu",
+      "file": "11_UC-DOCUMENT.md"
+    },
+    {
+      "code": "UC-FINANCE",
+      "title": "Quản lý tài chính và ngân sách",
+      "file": "12_UC-FINANCE.md"
+    },
+    {
+      "code": "UC-ASSET",
+      "title": "Quản lý tài sản và hậu cần",
+      "file": "13_UC-ASSET.md"
+    },
+    {
+      "code": "UC-MEETING",
+      "title": "Quản lý cuộc họp, sự kiện và chuyên cần",
+      "file": "14_UC-MEETING.md"
+    },
+    {
+      "code": "UC-DISCIPLINE",
+      "title": "Quản lý kỷ luật và KPI",
+      "file": "15_UC-DISCIPLINE.md"
+    },
+    {
+      "code": "UC-EVALUATION",
+      "title": "Quản lý đánh giá thành viên",
+      "file": "16_UC-EVALUATION.md"
+    },
+    {
+      "code": "UC-COMPETITION",
+      "title": "Quản lý cuộc thi, thành tích và ghi nhận",
+      "file": "17_UC-COMPETITION.md"
+    },
+    {
+      "code": "UC-NOTIFICATION",
+      "title": "Quản lý thông báo và truyền thông nội bộ",
+      "file": "18_UC-NOTIFICATION.md"
+    },
+    {
+      "code": "UC-DASHBOARD",
+      "title": "Dashboard, báo cáo và xuất dữ liệu",
+      "file": "19_UC-DASHBOARD.md"
+    },
+    {
+      "code": "UC-AI",
+      "title": "Trợ lý AI và AI Gateway",
+      "file": "20_UC-AI.md"
+    },
+    {
+      "code": "UC-AUDIT",
+      "title": "Nhật ký hệ thống và truy vết hoạt động",
+      "file": "21_UC-AUDIT.md"
+    }
+  ],
+  "sub_use_case_policy": "No fixed per-group limit; enumerate all reasonably identifiable actor-goal use cases within the approved product boundary.",
+  "total_sub_use_cases": 841,
+  "sub_use_case_counts": {
+    "UC-TENANT": 50,
+    "UC-AUTH": 36,
+    "UC-USER": 33,
+    "UC-RBAC": 38,
+    "UC-ORG": 34,
+    "UC-BRAND": 35,
+    "UC-MODULE": 36,
+    "UC-SETTING": 28,
+    "UC-MEMBER": 41,
+    "UC-REQUEST": 43,
+    "UC-DOCUMENT": 46,
+    "UC-FINANCE": 52,
+    "UC-ASSET": 46,
+    "UC-MEETING": 40,
+    "UC-DISCIPLINE": 34,
+    "UC-EVALUATION": 43,
+    "UC-COMPETITION": 40,
+    "UC-NOTIFICATION": 42,
+    "UC-DASHBOARD": 40,
+    "UC-AI": 44,
+    "UC-AUDIT": 40
+  }
+}

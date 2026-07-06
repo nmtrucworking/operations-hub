@@ -1,0 +1,230 @@
+{
+  "version": "3.0",
+  "total_functional_elements": 841,
+  "counts_by_type": {
+    "UC": 741,
+    "INC": 42,
+    "EXT": 27,
+    "REQ": 31
+  },
+  "modules": [
+    {
+      "code": "UC-TENANT",
+      "file": "01_UC-TENANT.md",
+      "total": 50,
+      "counts": {
+        "UC": 42,
+        "INC": 8
+      }
+    },
+    {
+      "code": "UC-AUTH",
+      "file": "02_UC-AUTH.md",
+      "total": 36,
+      "counts": {
+        "UC": 25,
+        "EXT": 3,
+        "INC": 3,
+        "REQ": 5
+      }
+    },
+    {
+      "code": "UC-USER",
+      "file": "03_UC-USER.md",
+      "total": 33,
+      "counts": {
+        "UC": 31,
+        "REQ": 2
+      }
+    },
+    {
+      "code": "UC-RBAC",
+      "file": "04_UC-RBAC.md",
+      "total": 38,
+      "counts": {
+        "UC": 36,
+        "REQ": 1,
+        "INC": 1
+      }
+    },
+    {
+      "code": "UC-ORG",
+      "file": "05_UC-ORG.md",
+      "total": 34,
+      "counts": {
+        "UC": 31,
+        "INC": 2,
+        "EXT": 1
+      }
+    },
+    {
+      "code": "UC-BRAND",
+      "file": "06_UC-BRAND.md",
+      "total": 35,
+      "counts": {
+        "UC": 31,
+        "INC": 3,
+        "EXT": 1
+      }
+    },
+    {
+      "code": "UC-MODULE",
+      "file": "07_UC-MODULE.md",
+      "total": 36,
+      "counts": {
+        "UC": 30,
+        "EXT": 3,
+        "INC": 3
+      }
+    },
+    {
+      "code": "UC-SETTING",
+      "file": "08_UC-SETTING.md",
+      "total": 28,
+      "counts": {
+        "UC": 28
+      }
+    },
+    {
+      "code": "UC-MEMBER",
+      "file": "09_UC-MEMBER.md",
+      "total": 41,
+      "counts": {
+        "UC": 38,
+        "EXT": 1,
+        "INC": 1,
+        "REQ": 1
+      }
+    },
+    {
+      "code": "UC-REQUEST",
+      "file": "10_UC-REQUEST.md",
+      "total": 43,
+      "counts": {
+        "UC": 39,
+        "INC": 1,
+        "REQ": 1,
+        "EXT": 2
+      }
+    },
+    {
+      "code": "UC-DOCUMENT",
+      "file": "11_UC-DOCUMENT.md",
+      "total": 46,
+      "counts": {
+        "UC": 44,
+        "EXT": 2
+      }
+    },
+    {
+      "code": "UC-FINANCE",
+      "file": "12_UC-FINANCE.md",
+      "total": 52,
+      "counts": {
+        "UC": 49,
+        "INC": 1,
+        "EXT": 2
+      }
+    },
+    {
+      "code": "UC-ASSET",
+      "file": "13_UC-ASSET.md",
+      "total": 46,
+      "counts": {
+        "UC": 43,
+        "INC": 1,
+        "EXT": 2
+      }
+    },
+    {
+      "code": "UC-MEETING",
+      "file": "14_UC-MEETING.md",
+      "total": 40,
+      "counts": {
+        "UC": 38,
+        "INC": 1,
+        "EXT": 1
+      }
+    },
+    {
+      "code": "UC-DISCIPLINE",
+      "file": "15_UC-DISCIPLINE.md",
+      "total": 34,
+      "counts": {
+        "UC": 28,
+        "INC": 3,
+        "EXT": 2,
+        "REQ": 1
+      }
+    },
+    {
+      "code": "UC-EVALUATION",
+      "file": "16_UC-EVALUATION.md",
+      "total": 43,
+      "counts": {
+        "UC": 38,
+        "EXT": 2,
+        "INC": 2,
+        "REQ": 1
+      }
+    },
+    {
+      "code": "UC-COMPETITION",
+      "file": "17_UC-COMPETITION.md",
+      "total": 40,
+      "counts": {
+        "UC": 38,
+        "INC": 2
+      }
+    },
+    {
+      "code": "UC-NOTIFICATION",
+      "file": "18_UC-NOTIFICATION.md",
+      "total": 42,
+      "counts": {
+        "UC": 33,
+        "INC": 5,
+        "REQ": 2,
+        "EXT": 2
+      }
+    },
+    {
+      "code": "UC-DASHBOARD",
+      "file": "19_UC-DASHBOARD.md",
+      "total": 40,
+      "counts": {
+        "UC": 39,
+        "INC": 1
+      }
+    },
+    {
+      "code": "UC-AI",
+      "file": "20_UC-AI.md",
+      "total": 44,
+      "counts": {
+        "UC": 36,
+        "INC": 3,
+        "REQ": 3,
+        "EXT": 2
+      }
+    },
+    {
+      "code": "UC-AUDIT",
+      "file": "21_UC-AUDIT.md",
+      "total": 40,
+      "counts": {
+        "REQ": 14,
+        "UC": 24,
+        "INC": 1,
+        "EXT": 1
+      }
+    }
+  ],
+  "principles": [
+    "direct actor association",
+    "no PKG pseudo-use-case",
+    "semantic workflow grouping",
+    "UC/INC/EXT/REQ classification",
+    "V2 code traceability"
+  ]
+}

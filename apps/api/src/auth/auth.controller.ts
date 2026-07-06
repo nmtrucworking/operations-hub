@@ -1,0 +1,52 @@
+import { Body, Controller, Get, Post, Req } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { Public } from "../shared/decorators/public.decorator";
+import { CurrentUser } from "../shared/decorators/current-user.decorator";
+import { AppRequest, AuthUser } from "../shared/request-context";
+import { AuthService } from "./auth.service";
+import { LoginDto, LogoutDto, RefreshDto, RegisterDto, SelectTenantDto } from "./dto";
+
+@ApiTags("auth")
+@Controller("auth")
+export class AuthController {
+  constructor(private readonly auth: AuthService) {}
+
+  @Public()
+  @Post("register")
+  register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto);
+  }
+
+  @Public()
+  @Post("login")
+  login(@Body() dto: LoginDto, @Req() req: AppRequest) {
+    return this.auth.login(dto, {
+      ip: req.ip,
+      userAgent: req.header("user-agent"),
+      correlationId: req.correlationId
+    });
+  }
+
+  @Public()
+  @Post("refresh")
+  refresh(@Body() dto: RefreshDto) {
+    return this.auth.refresh(dto.refreshToken);
+  }
+
+  @Post("logout")
+  logout(@Body() dto: LogoutDto) {
+    return this.auth.logout(dto.refreshToken);
+  }
+
+  @ApiBearerAuth()
+  @Get("me")
+  me(@CurrentUser() user: AuthUser) {
+    return this.auth.me(user.userId);
+  }
+
+  @ApiBearerAuth()
+  @Post("select-tenant")
+  selectTenant(@CurrentUser() user: AuthUser, @Body() dto: SelectTenantDto, @Req() req: AppRequest) {
+    return this.auth.selectTenant(user, dto.tenantId, { ip: req.ip, correlationId: req.correlationId });
+  }
+}
