@@ -42,3 +42,7 @@ Demo users all use password `Password123!`:
 - `finance@demo.example`
 - `member@demo.example`
 - `owner@green.example`
+
+## Documentation
+
+- [Public pages and Minimalist UI specification](docs/public-pages-minimalist-ui.md)
