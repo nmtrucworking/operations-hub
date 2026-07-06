@@ -10,6 +10,10 @@ Base project for a multi-tenant operations management platform.
 - Shared constants and types in `packages/shared`
 - PostgreSQL and Prisma
 
+## Documentation
+
+- [Class Diagram](docs/diagrams/class-diagram.md) — current domain model, class relationships, business invariants, module mapping, and identified design gaps.
+
 ## Quick Start
 
 1. Copy `.env.example` to `.env`. For Prisma CLI commands run inside `apps/api`, also copy `apps/api/.env.example` to `apps/api/.env` or export the same variables in your shell.
