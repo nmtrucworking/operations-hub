@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "tsc -p tsconfig.json --noEmit",
+    "mock:data": "pnpm -w --filter @operations-hub/api prisma:seed",
     "test": "echo \"web: smoke tests are manual in this base\""
   },
   "dependencies": {

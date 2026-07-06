@@ -17,7 +17,7 @@ Base project for a multi-tenant operations management platform.
 3. Install dependencies: `pnpm install`.
 4. Generate Prisma client: `pnpm db:generate`.
 5. Apply the initial schema: `pnpm db:migrate`.
-6. Seed demo data: `pnpm db:seed`.
+6. Seed demo/mock data: `pnpm mock:data` or `pnpm db:seed`.
 7. Run both apps: `pnpm dev`.
 
 API: `http://localhost:3001`
@@ -25,6 +25,16 @@ API: `http://localhost:3001`
 Swagger: `http://localhost:3001/api/docs`
 
 Web: `http://localhost:3000`
+
+## Mock Data
+
+Use `pnpm mock:data` to load the demo data used by the web app. The command runs the frontend workspace script, which delegates to the API Prisma seed script.
+
+Equivalent commands:
+
+- `pnpm mock:data`
+- `pnpm --filter @operations-hub/web mock:data`
+- `pnpm db:seed`
 
 Demo users all use password `Password123!`:
 
