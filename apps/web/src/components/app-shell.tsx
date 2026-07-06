@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function logout() {
     clearSession();
-    router.push("/login");
+    router.push("/auth/login");
   }
 
   return (
