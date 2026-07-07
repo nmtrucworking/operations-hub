@@ -66,98 +66,149 @@ enum AuditResult {
   FAILURE
 }
 
+enum AccountStatus {
+  ACTIVE
+  DISABLED
+  LOCKED
+  ANONYMIZED
+}
+
+enum TenantRegistrationStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum RolePermissionEffect {
+  ALLOW
+  DENY
+}
+
+enum ModuleDefinitionStatus {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+  RETIRED
+}
+
+enum TenantModuleStatus {
+  ENABLED
+  DISABLED
+  SUSPENDED
+}
+
+enum FinanceAccountStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
 model User {
-  id             String       @id @default(uuid())
-  email          String       @unique
-  passwordHash   String
-  fullName       String
-  avatarUrl      String?
-  isActive       Boolean      @default(true)
-  isVerified     Boolean      @default(true)
-  platformRole   String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  sessions       Session[]
-  memberships    Membership[]
-  auditLogs       AuditLog[]   @relation("AuditActor")
-  createdRequests Request[]    @relation("RequestCreator")
+  id              String               @id @default(uuid())
+  email           String               @unique
+  passwordHash    String
+  fullName        String
+  avatarUrl       String?
+  isActive        Boolean              @default(true)
+  isVerified      Boolean              @default(true)
+  accountStatus   AccountStatus        @default(ACTIVE)
+  platformRole    String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  sessions        Session[]
+  memberships     Membership[]
+  auditLogs       AuditLog[]           @relation("AuditActor")
+  createdRequests Request[]            @relation("RequestCreator")
   financeCreated  FinanceTransaction[] @relation("FinanceCreator")
 }
 
 model Session {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   userId           String
   refreshTokenHash String
   userAgent        String?
   ipAddress        String?
   expiresAt        DateTime
   revokedAt        DateTime?
-  createdAt        DateTime @default(now())
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Tenant {
-  id          String       @id @default(uuid())
-  name        String
-  slug        String       @unique
-  status      TenantStatus @default(ACTIVE)
-  brandColor  String       @default("#2563eb")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  memberships Membership[]
-  units       Unit[]
-  roles       Role[]
-  requestTypes RequestType[]
-  requests    Request[]
-  financeAccounts FinanceAccount[]
+  id                  String               @id @default(uuid())
+  name                String
+  slug                String               @unique
+  status              TenantStatus         @default(ACTIVE)
+  brandColor          String               @default("#2563eb")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         Membership[]
+  units               Unit[]
+  roles               Role[]
+  requestTypes        RequestType[]
+  requests            Request[]
+  financeAccounts     FinanceAccount[]
   financeTransactions FinanceTransaction[]
-  dashboardMetrics DashboardMetric[]
-  auditLogs   AuditLog[]
-  modules     TenantModule[]
+  dashboardMetrics    DashboardMetric[]
+  auditLogs           AuditLog[]
+  modules             TenantModule[]
 }
 
 model TenantModule {
-  id        String   @id @default(uuid())
-  tenantId  String
-  key       String
-  isEnabled Boolean  @default(true)
-  config    Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id         String             @id @default(uuid())
+  tenantId   String
+  key        String
+  moduleId   String?
+  status     TenantModuleStatus @default(ENABLED)
+  isEnabled  Boolean            @default(true)
+  config     Json?
+  enabledAt  DateTime?
+  disabledAt DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, key])
+  @@index([moduleId])
 }
 
 model Unit {
-  id        String   @id @default(uuid())
+  id        String          @id @default(uuid())
   tenantId  String
   name      String
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  parent    Unit?    @relation("UnitTree", fields: [parentId], references: [id])
-  children  Unit[]   @relation("UnitTree")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent    Unit?           @relation("UnitTree", fields: [parentId], references: [id])
+  children  Unit[]          @relation("UnitTree")
   members   MemberProfile[]
 
   @@index([tenantId])
 }
 
 model Membership {
-  id        String           @id @default(uuid())
+  id        String            @id @default(uuid())
   userId    String
   tenantId  String
-  status    MembershipStatus @default(PENDING)
+  status    MembershipStatus  @default(PENDING)
   title     String?
   joinedAt  DateTime?
   endedAt   DateTime?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   profile   MemberProfile?
   roles     MembershipRole[]
   approvals RequestApproval[]
@@ -168,7 +219,7 @@ model Membership {
 
 model MemberProfile {
   id           String     @id @default(uuid())
-  membershipId String    @unique
+  membershipId String     @unique
   tenantId     String
   unitId       String?
   studentCode  String?
@@ -178,7 +229,7 @@ model MemberProfile {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-  unit         Unit?       @relation(fields: [unitId], references: [id])
+  unit         Unit?      @relation(fields: [unitId], references: [id])
 
   @@index([tenantId])
 }
@@ -186,9 +237,11 @@ model MemberProfile {
 model Role {
   id          String           @id @default(uuid())
   tenantId    String
+  code        String?
   name        String
   description String?
   isSystem    Boolean          @default(false)
+  isActive    Boolean          @default(true)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -196,11 +249,14 @@ model Role {
   memberships MembershipRole[]
 
   @@unique([tenantId, name])
+  @@unique([tenantId, code])
 }
 
 model Permission {
   id          String           @id @default(uuid())
   code        String           @unique
+  resource    String?
+  action      String?
   description String?
   roles       RolePermission[]
 }
@@ -208,8 +264,9 @@ model Permission {
 model RolePermission {
   roleId       String
   permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  effect       RolePermissionEffect @default(ALLOW)
+  role         Role                 @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission           @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
 }
@@ -218,6 +275,7 @@ model MembershipRole {
   membershipId String
   roleId       String
   assignedAt   DateTime   @default(now())
+  expiresAt    DateTime?
   membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -225,84 +283,94 @@ model MembershipRole {
 }
 
 model RequestType {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   tenantId  String
   name      String
   schema    Json?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   requests  Request[]
 
   @@unique([tenantId, name])
 }
 
 model Request {
-  id          String        @id @default(uuid())
-  tenantId    String
-  typeId      String?
-  creatorId   String
-  title       String
-  description String?
-  status      RequestStatus @default(DRAFT)
-  payload     Json?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  type        RequestType?  @relation(fields: [typeId], references: [id])
-  creator     User          @relation("RequestCreator", fields: [creatorId], references: [id])
-  approvals   RequestApproval[]
+  id                  String            @id @default(uuid())
+  tenantId            String
+  typeId              String?
+  creatorId           String
+  creatorMembershipId String?
+  title               String
+  description         String?
+  status              RequestStatus     @default(DRAFT)
+  payload             Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type                RequestType?      @relation(fields: [typeId], references: [id])
+  creator             User              @relation("RequestCreator", fields: [creatorId], references: [id])
+  approvals           RequestApproval[]
 
   @@index([tenantId, status])
+  @@index([creatorMembershipId])
 }
 
 model RequestApproval {
-  id           String         @id @default(uuid())
-  requestId    String
-  membershipId String
-  status       ApprovalStatus @default(PENDING)
-  note         String?
-  decidedAt    DateTime?
-  createdAt    DateTime       @default(now())
-  request      Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  membership   Membership     @relation(fields: [membershipId], references: [id])
+  id               String         @id @default(uuid())
+  requestId        String
+  membershipId     String
+  stepDefinitionId String?
+  status           ApprovalStatus @default(PENDING)
+  note             String?
+  decidedAt        DateTime?
+  createdAt        DateTime       @default(now())
+  request          Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  membership       Membership     @relation(fields: [membershipId], references: [id])
+
+  @@index([stepDefinitionId])
 }
 
 model FinanceAccount {
-  id        String   @id @default(uuid())
-  tenantId  String
-  name      String
-  currency  String   @default("VND")
-  balance   Decimal  @default(0) @db.Decimal(18, 2)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id           String               @id @default(uuid())
+  tenantId     String
+  name         String
+  currency     String               @default("VND")
+  status       FinanceAccountStatus @default(ACTIVE)
+  balance      Decimal              @default(0) @db.Decimal(18, 2)
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   transactions FinanceTransaction[]
 
   @@unique([tenantId, name])
 }
 
 model FinanceTransaction {
-  id          String                   @id @default(uuid())
-  tenantId    String
-  accountId   String
-  createdById String
-  type        FinanceTransactionType
-  status      FinanceTransactionStatus @default(DRAFT)
-  amount      Decimal                  @db.Decimal(18, 2)
-  currency    String                   @default("VND")
-  category    String
-  description String?
-  occurredAt  DateTime?
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-  tenant      Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  account     FinanceAccount           @relation(fields: [accountId], references: [id])
-  createdBy   User                     @relation("FinanceCreator", fields: [createdById], references: [id])
+  id                  String                   @id @default(uuid())
+  tenantId            String
+  accountId           String
+  categoryId          String?
+  createdById         String
+  creatorMembershipId String?
+  type                FinanceTransactionType
+  status              FinanceTransactionStatus @default(DRAFT)
+  amount              Decimal                  @db.Decimal(18, 2)
+  currency            String                   @default("VND")
+  category            String
+  description         String?
+  occurredAt          DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  tenant              Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account             FinanceAccount           @relation(fields: [accountId], references: [id])
+  createdBy           User                     @relation("FinanceCreator", fields: [createdById], references: [id])
 
   @@index([tenantId, status])
+  @@index([categoryId])
+  @@index([creatorMembershipId])
 }
 
 model DashboardMetric {
@@ -337,4 +405,1366 @@ model AuditLog {
 
   @@index([tenantId, createdAt])
   @@index([actorId, createdAt])
+}
+
+model Credential {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  passwordHash      String
+  passwordChangedAt DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  sessionId String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([expiresAt])
+}
+
+model VerificationToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model ExternalIdentity {
+  id              String   @id @default(uuid())
+  userId          String
+  provider        String
+  providerSubject String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+}
+
+model LoginAttempt {
+  id         String   @id @default(uuid())
+  userId     String?
+  identifier String
+  ipAddress  String?
+  result     String
+  occurredAt DateTime @default(now())
+
+  @@index([userId, occurredAt])
+  @@index([identifier, occurredAt])
+  @@index([ipAddress, occurredAt])
+}
+
+model UserProfile {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  fullName    String
+  avatarUrl   String?
+  bio         String?
+  dateOfBirth DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model UserContact {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  value      String
+  isPrimary  Boolean  @default(false)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, type, value])
+  @@index([userId])
+}
+
+model AccountStatusHistory {
+  id         String         @id @default(uuid())
+  userId     String
+  fromStatus AccountStatus?
+  toStatus   AccountStatus
+  reason     String?
+  changedBy  String?
+  changedAt  DateTime       @default(now())
+
+  @@index([userId, changedAt])
+  @@index([changedBy, changedAt])
+}
+
+model TenantRegistration {
+  id              String                   @id @default(uuid())
+  applicantUserId String
+  proposedName    String
+  proposedSlug    String
+  status          TenantRegistrationStatus @default(SUBMITTED)
+  submittedAt     DateTime                 @default(now())
+  reviewedAt      DateTime?
+  reviewedById    String?
+  createdTenantId String?
+  reviewNote      String?
+  metadata        Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@unique([proposedSlug])
+  @@index([applicantUserId])
+  @@index([createdTenantId])
+  @@index([status, submittedAt])
+}
+
+model TenantLifecycleEvent {
+  id         String        @id @default(uuid())
+  tenantId   String
+  fromStatus TenantStatus?
+  toStatus   TenantStatus
+  reason     String?
+  actorId    String?
+  occurredAt DateTime      @default(now())
+
+  @@index([tenantId, occurredAt])
+  @@index([actorId, occurredAt])
+}
+
+model OwnershipAssignment {
+  id            String    @id @default(uuid())
+  tenantId      String
+  membershipId  String
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([tenantId, effectiveFrom])
+  @@index([membershipId])
+}
+
+model OrganizationProfile {
+  id           String   @id @default(uuid())
+  tenantId     String   @unique
+  displayName  String
+  description  String?
+  contactEmail String?
+  address      String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model OrganizationUnit {
+  id        String   @id @default(uuid())
+  tenantId  String
+  parentId  String?
+  code      String
+  name      String
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([parentId])
+}
+
+model Position {
+  id        String   @id @default(uuid())
+  tenantId  String
+  unitId    String?
+  code      String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([unitId])
+}
+
+model MembershipInvitation {
+  id                    String    @id @default(uuid())
+  tenantId              String
+  email                 String
+  tokenHash             String
+  status                String    @default("PENDING")
+  invitedByMembershipId String?
+  expiresAt             DateTime
+  acceptedAt            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([tenantId, status])
+  @@index([email])
+  @@index([invitedByMembershipId])
+}
+
+model MembershipStatusHistory {
+  id                    String            @id @default(uuid())
+  membershipId          String
+  fromStatus            MembershipStatus?
+  toStatus              MembershipStatus
+  reason                String?
+  changedAt             DateTime          @default(now())
+  changedByMembershipId String?
+
+  @@index([membershipId, changedAt])
+  @@index([changedByMembershipId])
+}
+
+model Skill {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model MemberSkill {
+  membershipId String
+  skillId      String
+  level        String?
+  evidence     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@id([membershipId, skillId])
+  @@index([skillId])
+}
+
+model MembershipUnit {
+  membershipId  String
+  unitId        String
+  isPrimary     Boolean   @default(false)
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+
+  @@id([membershipId, unitId, effectiveFrom])
+  @@index([unitId])
+}
+
+model MembershipPosition {
+  membershipId  String
+  positionId    String
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+
+  @@id([membershipId, positionId, effectiveFrom])
+  @@index([positionId])
+}
+
+model PermissionScope {
+  id               String @id @default(uuid())
+  membershipId     String
+  roleId           String
+  scopeType        String
+  scopeReferenceId String
+
+  @@index([membershipId, roleId])
+  @@index([scopeType, scopeReferenceId])
+}
+
+model DelegationPolicy {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  grantorRoleId      String
+  granteeRoleId      String
+  maxPermissionLevel String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([grantorRoleId])
+  @@index([granteeRoleId])
+}
+
+model ModuleDefinition {
+  id        String                 @id @default(uuid())
+  key       String                 @unique
+  name      String
+  version   String
+  status    ModuleDefinitionStatus @default(ACTIVE)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+}
+
+model ModuleDependency {
+  moduleId          String
+  dependsOnModuleId String
+  minimumVersion    String?
+
+  @@id([moduleId, dependsOnModuleId])
+  @@index([dependsOnModuleId])
+}
+
+model ModuleConfigVersion {
+  id             String   @id @default(uuid())
+  tenantModuleId String
+  version        Int
+  config         Json
+  createdAt      DateTime @default(now())
+
+  @@unique([tenantModuleId, version])
+  @@index([tenantModuleId])
+}
+
+model UserSetting {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  locale     String   @default("vi")
+  timezone   String   @default("Asia/Ho_Chi_Minh")
+  appearance String   @default("system")
+  dateFormat String   @default("dd/MM/yyyy")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model TenantPreference {
+  id                 String   @id @default(uuid())
+  userSettingId      String
+  tenantId           String
+  defaultLandingPage String?
+  compactMode        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([userSettingId, tenantId])
+  @@index([tenantId])
+}
+
+model NotificationPreference {
+  id            String   @id @default(uuid())
+  userSettingId String?
+  userId        String?
+  tenantId      String?
+  eventType     String
+  channel       String
+  isEnabled     Boolean  @default(true)
+  digestMode    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userSettingId])
+  @@index([userId, tenantId])
+  @@index([eventType, channel])
+}
+
+model ApprovalPolicy {
+  id                  String   @id @default(uuid())
+  requestTypeId       String
+  name                String
+  preventSelfApproval Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([requestTypeId])
+}
+
+model ApprovalStepDefinition {
+  id               String  @id @default(uuid())
+  policyId         String
+  sequence         Int
+  requiredRoleId   String?
+  minimumApprovals Int     @default(1)
+
+  @@unique([policyId, sequence])
+  @@index([requiredRoleId])
+}
+
+model RequestAttachment {
+  id           String   @id @default(uuid())
+  requestId    String
+  fileObjectId String
+  createdAt    DateTime @default(now())
+
+  @@index([requestId])
+  @@index([fileObjectId])
+}
+
+model RequestComment {
+  id                 String   @id @default(uuid())
+  requestId          String
+  authorMembershipId String
+  content            String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([requestId, createdAt])
+  @@index([authorMembershipId])
+}
+
+model RequestStatusHistory {
+  id                    String         @id @default(uuid())
+  requestId             String
+  fromStatus            RequestStatus?
+  toStatus              RequestStatus
+  changedByMembershipId String?
+  changedAt             DateTime       @default(now())
+
+  @@index([requestId, changedAt])
+  @@index([changedByMembershipId])
+}
+
+model FileObject {
+  id         String   @id @default(uuid())
+  tenantId   String
+  storageKey String
+  mediaType  String
+  size       Int
+  checksum   String?
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, storageKey])
+  @@index([tenantId])
+}
+
+model Document {
+  id               String   @id @default(uuid())
+  tenantId         String
+  code             String
+  title            String
+  documentType     String
+  status           String   @default("DRAFT")
+  currentVersionId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+  @@index([currentVersionId])
+}
+
+model DocumentVersion {
+  id                    String   @id @default(uuid())
+  documentId            String
+  versionNumber         Int
+  fileObjectId          String
+  createdByMembershipId String
+  createdAt             DateTime @default(now())
+
+  @@unique([documentId, versionNumber])
+  @@index([fileObjectId])
+  @@index([createdByMembershipId])
+}
+
+model DocumentTemplate {
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  templateFileId String
+  schema         Json?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([templateFileId])
+}
+
+model GeneratedDocument {
+  id               String   @id @default(uuid())
+  templateId       String
+  sourceEntityType String
+  sourceEntityId   String
+  outputFileId     String
+  generatedAt      DateTime @default(now())
+
+  @@index([templateId])
+  @@index([sourceEntityType, sourceEntityId])
+  @@index([outputFileId])
+}
+
+model DocumentApproval {
+  id                   String         @id @default(uuid())
+  documentId           String
+  approverMembershipId String
+  status               ApprovalStatus @default(PENDING)
+  decidedAt            DateTime?
+  note                 String?
+  createdAt            DateTime       @default(now())
+
+  @@index([documentId])
+  @@index([approverMembershipId])
+}
+
+model DocumentTag {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, name])
+}
+
+model DocumentTagAssignment {
+  documentId String
+  tagId      String
+
+  @@id([documentId, tagId])
+  @@index([tagId])
+}
+
+model TenantBranding {
+  id             String   @id @default(uuid())
+  tenantId       String   @unique
+  displayName    String
+  logoAssetId    String?
+  faviconAssetId String?
+  primaryColor   String?
+  secondaryColor String?
+  status         String   @default("DRAFT")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BrandAsset {
+  id           String   @id @default(uuid())
+  tenantId     String
+  fileObjectId String
+  assetType    String
+  altText      String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([fileObjectId])
+}
+
+model ThemeToken {
+  id         String   @id @default(uuid())
+  brandingId String
+  key        String
+  value      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([brandingId, key])
+}
+
+model BrandingVersion {
+  id          String    @id @default(uuid())
+  brandingId  String
+  version     Int
+  snapshot    Json
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([brandingId, version])
+}
+
+model CustomDomain {
+  id                 String    @id @default(uuid())
+  tenantId           String
+  hostname           String    @unique
+  verificationStatus String    @default("PENDING")
+  verifiedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model FinanceCategory {
+  id        String                 @id @default(uuid())
+  tenantId  String
+  code      String
+  name      String
+  type      FinanceTransactionType
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId, type])
+}
+
+model Budget {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([periodStart, periodEnd])
+}
+
+model BudgetLine {
+  id              String  @id @default(uuid())
+  budgetId        String
+  categoryId      String
+  allocatedAmount Decimal @default(0) @db.Decimal(18, 2)
+  spentAmount     Decimal @default(0) @db.Decimal(18, 2)
+
+  @@unique([budgetId, categoryId])
+  @@index([categoryId])
+}
+
+model LedgerEntry {
+  id            String          @id @default(uuid())
+  transactionId String
+  accountId     String
+  direction     LedgerDirection
+  amount        Decimal         @db.Decimal(18, 2)
+  createdAt     DateTime        @default(now())
+
+  @@index([transactionId])
+  @@index([accountId])
+}
+
+model TransactionApproval {
+  id                   String         @id @default(uuid())
+  transactionId        String
+  approverMembershipId String
+  status               ApprovalStatus @default(PENDING)
+  decidedAt            DateTime?
+  note                 String?
+  createdAt            DateTime       @default(now())
+
+  @@index([transactionId])
+  @@index([approverMembershipId])
+}
+
+model FinanceEvidence {
+  id            String   @id @default(uuid())
+  transactionId String
+  fileObjectId  String
+  evidenceType  String
+  createdAt     DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([fileObjectId])
+}
+
+model AssetCategory {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  code      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+}
+
+model Asset {
+  id         String   @id @default(uuid())
+  tenantId   String
+  categoryId String
+  name       String
+  assetCode  String
+  status     String   @default("ACTIVE")
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, assetCode])
+  @@index([categoryId])
+}
+
+model AssetLocation {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  unitId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([unitId])
+}
+
+model AssetItem {
+  id           String   @id @default(uuid())
+  assetId      String
+  locationId   String?
+  serialNumber String?
+  condition    String?
+  status       String   @default("AVAILABLE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([assetId, serialNumber])
+  @@index([locationId])
+  @@index([status])
+}
+
+model AssetAssignment {
+  id                 String    @id @default(uuid())
+  assetItemId        String
+  holderMembershipId String
+  assignedAt         DateTime  @default(now())
+  returnedAt         DateTime?
+
+  @@index([assetItemId])
+  @@index([holderMembershipId])
+}
+
+model AssetCheckout {
+  id                   String    @id @default(uuid())
+  assetItemId          String
+  borrowerMembershipId String
+  checkoutAt           DateTime  @default(now())
+  dueAt                DateTime?
+  returnedAt           DateTime?
+
+  @@index([assetItemId])
+  @@index([borrowerMembershipId])
+}
+
+model MaintenanceRecord {
+  id          String    @id @default(uuid())
+  assetItemId String
+  issue       String
+  status      String    @default("OPEN")
+  openedAt    DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([assetItemId])
+  @@index([status])
+}
+
+model Meeting {
+  id        String    @id @default(uuid())
+  tenantId  String
+  type      String
+  title     String
+  startAt   DateTime
+  endAt     DateTime?
+  status    String    @default("DRAFT")
+  unitId    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId, startAt])
+  @@index([unitId])
+}
+
+model MeetingParticipant {
+  meetingId        String
+  membershipId     String
+  participantRole  String
+  invitationStatus String @default("PENDING")
+
+  @@id([meetingId, membershipId])
+  @@index([membershipId])
+}
+
+model AttendanceRecord {
+  id           String    @id @default(uuid())
+  meetingId    String
+  membershipId String
+  status       String
+  checkInAt    DateTime?
+  checkOutAt   DateTime?
+  note         String?
+
+  @@unique([meetingId, membershipId])
+  @@index([membershipId])
+}
+
+model AgendaItem {
+  id                String  @id @default(uuid())
+  meetingId         String
+  sequence          Int
+  title             String
+  ownerMembershipId String?
+
+  @@unique([meetingId, sequence])
+  @@index([ownerMembershipId])
+}
+
+model MeetingMinute {
+  id         String    @id @default(uuid())
+  meetingId  String    @unique
+  content    String
+  status     String    @default("DRAFT")
+  approvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model MeetingActionItem {
+  id                   String    @id @default(uuid())
+  meetingId            String
+  assigneeMembershipId String?
+  title                String
+  dueAt                DateTime?
+  status               String    @default("OPEN")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([meetingId])
+  @@index([assigneeMembershipId])
+}
+
+model DisciplineRule {
+  id        String   @id @default(uuid())
+  tenantId  String
+  code      String
+  name      String
+  severity  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+}
+
+model DisciplineCase {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  subjectMembershipId String
+  ruleId              String
+  status              String    @default("OPEN")
+  openedAt            DateTime  @default(now())
+  resolvedAt          DateTime?
+
+  @@index([tenantId, status])
+  @@index([subjectMembershipId])
+  @@index([ruleId])
+}
+
+model DisciplineEvidence {
+  id           String   @id @default(uuid())
+  caseId       String
+  fileObjectId String
+  description  String?
+  createdAt    DateTime @default(now())
+
+  @@index([caseId])
+  @@index([fileObjectId])
+}
+
+model DisciplineAction {
+  id            String    @id @default(uuid())
+  caseId        String
+  actionType    String
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  status        String    @default("PENDING")
+
+  @@index([caseId])
+  @@index([status])
+}
+
+model KpiDefinition {
+  id        String   @id @default(uuid())
+  tenantId  String
+  code      String
+  name      String
+  formula   String?
+  threshold Decimal? @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+}
+
+model KpiPeriod {
+  id       String   @id @default(uuid())
+  tenantId String
+  name     String
+  startAt  DateTime
+  endAt    DateTime
+
+  @@unique([tenantId, name])
+  @@index([startAt, endAt])
+}
+
+model KpiRecord {
+  id           String   @id @default(uuid())
+  definitionId String
+  periodId     String
+  membershipId String
+  value        Decimal  @db.Decimal(18, 2)
+  status       String   @default("DRAFT")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([definitionId, periodId, membershipId])
+  @@index([membershipId])
+}
+
+model EvaluationCycle {
+  id        String   @id @default(uuid())
+  tenantId  String
+  code      String
+  name      String
+  status    String   @default("DRAFT")
+  startAt   DateTime
+  endAt     DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+}
+
+model EvaluationCriterion {
+  id        String   @id @default(uuid())
+  tenantId  String
+  code      String
+  name      String
+  component String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+}
+
+model CriterionVersion {
+  id                String    @id @default(uuid())
+  criterionId       String
+  effectiveFrom     DateTime
+  effectiveTo       DateTime?
+  maxScore          Decimal   @db.Decimal(18, 2)
+  calculationMethod String?
+
+  @@index([criterionId])
+}
+
+model EvaluationAssignment {
+  id                    String   @id @default(uuid())
+  cycleId               String
+  subjectMembershipId   String
+  evaluatorMembershipId String
+  status                String   @default("PENDING")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([cycleId, subjectMembershipId, evaluatorMembershipId])
+  @@index([subjectMembershipId])
+  @@index([evaluatorMembershipId])
+}
+
+model EvaluationScore {
+  id                 String  @id @default(uuid())
+  assignmentId       String
+  criterionVersionId String
+  score              Decimal @db.Decimal(18, 2)
+  note               String?
+
+  @@unique([assignmentId, criterionVersionId])
+  @@index([criterionVersionId])
+}
+
+model EvaluationEvidence {
+  id           String  @id @default(uuid())
+  scoreId      String
+  fileObjectId String
+  description  String?
+
+  @@index([scoreId])
+  @@index([fileObjectId])
+}
+
+model EvaluationResult {
+  id             String    @id @default(uuid())
+  assignmentId   String    @unique
+  totalScore     Decimal   @db.Decimal(18, 2)
+  classification String?
+  finalizedAt    DateTime?
+}
+
+model Competition {
+  id        String    @id @default(uuid())
+  tenantId  String
+  name      String
+  organizer String?
+  startAt   DateTime?
+  endAt     DateTime?
+  status    String    @default("DRAFT")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model CompetitionTeam {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  name               String
+  leaderMembershipId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([leaderMembershipId])
+}
+
+model TeamMember {
+  teamId       String
+  membershipId String
+  role         String?
+
+  @@id([teamId, membershipId])
+  @@index([membershipId])
+}
+
+model CompetitionParticipation {
+  id              String   @id @default(uuid())
+  competitionId   String
+  teamId          String?
+  membershipId    String?
+  participantType String
+  status          String   @default("REGISTERED")
+  registeredAt    DateTime @default(now())
+
+  @@index([competitionId])
+  @@index([teamId])
+  @@index([membershipId])
+}
+
+model CompetitionSubmission {
+  id              String    @id @default(uuid())
+  participationId String
+  title           String
+  fileObjectId    String?
+  submittedAt     DateTime?
+
+  @@index([participationId])
+  @@index([fileObjectId])
+}
+
+model Achievement {
+  id              String    @id @default(uuid())
+  participationId String
+  title           String
+  level           String?
+  awardedAt       DateTime?
+
+  @@index([participationId])
+}
+
+model RecognitionAward {
+  id            String    @id @default(uuid())
+  tenantId      String
+  achievementId String
+  awardType     String
+  grantedAt     DateTime?
+
+  @@index([tenantId])
+  @@index([achievementId])
+}
+
+model NotificationTemplate {
+  id              String   @id @default(uuid())
+  tenantId        String
+  code            String
+  channel         String
+  subjectTemplate String?
+  bodyTemplate    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, code, channel])
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  tenantId   String
+  templateId String?
+  eventType  String
+  payload    Json?
+  priority   String   @default("NORMAL")
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([templateId])
+}
+
+model NotificationRecipient {
+  id             String    @id @default(uuid())
+  notificationId String
+  membershipId   String?
+  userId         String?
+  readAt         DateTime?
+
+  @@index([notificationId])
+  @@index([membershipId])
+  @@index([userId])
+}
+
+model NotificationDelivery {
+  id                String   @id @default(uuid())
+  recipientId       String
+  channel           String
+  status            String
+  providerMessageId String?
+  attemptedAt       DateTime @default(now())
+
+  @@index([recipientId])
+  @@index([status, attemptedAt])
+}
+
+model Announcement {
+  id            String    @id @default(uuid())
+  tenantId      String
+  title         String
+  content       String
+  audienceScope String
+  publishAt     DateTime?
+  expireAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId, publishAt])
+}
+
+model Dashboard {
+  id                String   @id @default(uuid())
+  tenantId          String
+  name              String
+  ownerMembershipId String?
+  scope             String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([ownerMembershipId])
+}
+
+model DashboardWidget {
+  id                 String  @id @default(uuid())
+  dashboardId        String
+  widgetType         String
+  metricDefinitionId String?
+  position           Json
+  config             Json?
+
+  @@index([dashboardId])
+  @@index([metricDefinitionId])
+}
+
+model MetricDefinition {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  name         String
+  sourceModule String
+  calculation  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model MetricSnapshot {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  metricDefinitionId String
+  value              Decimal  @db.Decimal(18, 2)
+  dimension          Json?
+  capturedAt         DateTime @default(now())
+
+  @@index([tenantId, capturedAt])
+  @@index([metricDefinitionId])
+}
+
+model ReportDefinition {
+  id              String   @id @default(uuid())
+  tenantId        String
+  name            String
+  queryDefinition Json
+  format          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model ReportRun {
+  id                      String    @id @default(uuid())
+  reportDefinitionId      String
+  requestedByMembershipId String?
+  status                  String    @default("PENDING")
+  startedAt               DateTime?
+  completedAt             DateTime?
+
+  @@index([reportDefinitionId])
+  @@index([requestedByMembershipId])
+}
+
+model ExportFile {
+  id           String    @id @default(uuid())
+  reportRunId  String    @unique
+  fileObjectId String
+  expiresAt    DateTime?
+
+  @@index([fileObjectId])
+}
+
+model AiProviderConfig {
+  id              String   @id @default(uuid())
+  tenantId        String
+  provider        String
+  model           String
+  secretReference String?
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model AiPolicy {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  allowedUseCase      String
+  dataClassification  String
+  humanReviewRequired Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([tenantId, allowedUseCase])
+}
+
+model AiPromptTemplate {
+  id        String   @id @default(uuid())
+  tenantId  String
+  code      String
+  version   Int
+  template  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code, version])
+}
+
+model AiRequest {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  requesterMembershipId String
+  providerConfigId      String?
+  promptTemplateId      String?
+  purpose               String
+  inputHash             String
+  status                String   @default("PENDING")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([requesterMembershipId])
+  @@index([providerConfigId])
+  @@index([promptTemplateId])
+}
+
+model AiResponse {
+  id                String   @id @default(uuid())
+  aiRequestId       String   @unique
+  providerRequestId String?
+  content           String
+  model             String
+  latencyMs         Int?
+  createdAt         DateTime @default(now())
+
+  @@index([providerRequestId])
+}
+
+model AiUsageRecord {
+  id            String  @id @default(uuid())
+  aiRequestId   String  @unique
+  inputTokens   Int     @default(0)
+  outputTokens  Int     @default(0)
+  estimatedCost Decimal @default(0) @db.Decimal(18, 6)
+}
+
+model AiFeedback {
+  id           String   @id @default(uuid())
+  aiResponseId String
+  membershipId String
+  rating       Int
+  comment      String?
+  createdAt    DateTime @default(now())
+
+  @@index([aiResponseId])
+  @@index([membershipId])
+}
+
+model AuditEvent {
+  id                String      @id @default(uuid())
+  tenantId          String?
+  actorUserId       String?
+  actorMembershipId String?
+  action            String
+  result            AuditResult @default(SUCCESS)
+  entityType        String?
+  entityId          String?
+  correlationId     String?
+  occurredAt        DateTime    @default(now())
+
+  @@index([tenantId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([actorMembershipId, occurredAt])
+  @@index([entityType, entityId])
+  @@index([correlationId])
+}
+
+model AuditChange {
+  id           String @id @default(uuid())
+  auditEventId String
+  field        String
+  beforeValue  Json?
+  afterValue   Json?
+
+  @@index([auditEventId])
+}
+
+model CorrelationContext {
+  correlationId String   @id
+  requestId     String?
+  traceId       String?
+  createdAt     DateTime @default(now())
+
+  @@index([requestId])
+  @@index([traceId])
+}
+
+model SecurityEvent {
+  id           String   @id @default(uuid())
+  auditEventId String   @unique
+  eventType    String
+  riskLevel    String
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([eventType, riskLevel])
+}
+
+model AuditRetentionPolicy {
+  id              String   @id @default(uuid())
+  scope           String
+  retentionDays   Int
+  archiveStrategy String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([scope])
 }
