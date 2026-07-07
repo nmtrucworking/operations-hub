@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, Coins, FileText, Shield, Users } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { clearSession, readSession, writeSession } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white md:block">
         <div className="border-b border-slate-200 px-5 py-4">
-          <div className="text-lg font-semibold">Operations Hub</div>
+          <BrandLogo className="h-8 w-auto" />
           <div className="text-sm text-slate-500">{session?.user?.email ?? "Not signed in"}</div>
         </div>
         <nav className="space-y-1 p-3">

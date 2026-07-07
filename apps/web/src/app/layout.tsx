@@ -11,6 +11,10 @@ export const metadata: Metadata = {
     title: "Operations Hub",
     description: "Nền tảng quản lý vận hành dùng chung cho tổ chức sinh viên",
     type: "website"
+  },
+  icons: {
+    icon: "/brand/operations-hub-favicon.svg",
+    shortcut: "/brand/operations-hub-favicon.svg"
   }
 };
 

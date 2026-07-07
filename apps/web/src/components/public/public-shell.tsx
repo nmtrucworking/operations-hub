@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LinkButton } from "./link-button";
@@ -60,8 +61,9 @@ export function PublicShell({ children, minimal = false }: { children: React.Rea
       </a>
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link className="text-base font-semibold tracking-normal text-slate-950" href="/">
-            Operations Hub
+          <Link className="flex h-10 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" href="/">
+            <BrandLogo className="h-8 w-auto md:hidden lg:block" />
+            <BrandLogo alt="Operations Hub" className="hidden h-8 w-8 md:block lg:hidden" variant="symbol" />
           </Link>
           {!minimal ? (
             <>
@@ -116,7 +118,7 @@ export function PublicShell({ children, minimal = false }: { children: React.Rea
             ref={panelRef}
           >
             <div className="flex items-center justify-between">
-              <span className="font-semibold">Operations Hub</span>
+              <BrandLogo className="h-8 w-auto" />
               <Button aria-label="Đóng điều hướng" className="px-3" onClick={() => setOpen(false)} type="button" variant="ghost">
                 <X className="h-5 w-5" aria-hidden="true" />
               </Button>
@@ -183,7 +185,7 @@ function PublicFooter({ minimal }: { minimal?: boolean }) {
     <footer className={cn("border-t border-slate-200 bg-slate-50", minimal && "bg-white")}>
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_repeat(3,1fr)]">
         <div>
-          <div className="font-semibold">Operations Hub</div>
+          <BrandLogo className="h-8 w-auto" />
           <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">
             Nền tảng quản lý vận hành dùng chung cho tổ chức sinh viên, tách bạch tài khoản, tenant,
             membership và quyền truy cập.

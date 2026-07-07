@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000" role="img" aria-labelledby="title">
+  <title id="title">Operations Hub logo system preview</title>
+  
+  
+    <rect width="1400" height="1000" fill="#EEF2F7"/>
+    <text x="70" y="72" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="34" font-weight="750" fill="#0F172A">Operations Hub — SVG Logo System</text>
+    <text x="70" y="108" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" fill="#475569">Modular orbit + H monogram · Multi-tenant platform identity</text>
+
+    <rect x="60" y="150" width="1280" height="210" rx="24" fill="#FFFFFF"/>
+    
+    <g transform="translate(100 210) scale(1.5)">
+      <path d="M20 8H44C50.627 8 56 13.373 56 20" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M56 20V44C56 50.627 50.627 56 44 56" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44 56H20C13.373 56 8 50.627 8 44" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M8 44V20C8 13.373 13.373 8 20 8" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <rect x="22" y="20" width="7" height="24" rx="3.5" fill="#0F172A"/>
+      <rect x="35" y="20" width="7" height="24" rx="3.5" fill="#0F172A"/>
+      <rect x="27" y="29" width="10" height="6" rx="3" fill="#0F172A"/>
+    </g>
+    
+    <text x="235" y="264" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="54" font-weight="750" letter-spacing="-1.8" fill="#0F172A">Operations</text>
+    <text x="505" y="264" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="54" font-weight="750" letter-spacing="-1.8" fill="#2563EB">Hub</text>
+    <text x="238" y="305" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="600" letter-spacing="3" fill="#475569">ORGANIZE · OPERATE · GROW</text>
+
+    <rect x="60" y="390" width="600" height="250" rx="24" fill="#FFFFFF"/>
+    <text x="95" y="435" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Symbol</text>
+    
+    <g transform="translate(220 465) scale(2)">
+      <path d="M20 8H44C50.627 8 56 13.373 56 20" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M56 20V44C56 50.627 50.627 56 44 56" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44 56H20C13.373 56 8 50.627 8 44" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M8 44V20C8 13.373 13.373 8 20 8" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <rect x="22" y="20" width="7" height="24" rx="3.5" fill="#0F172A"/>
+      <rect x="35" y="20" width="7" height="24" rx="3.5" fill="#0F172A"/>
+      <rect x="27" y="29" width="10" height="6" rx="3" fill="#0F172A"/>
+    </g>
+    
+
+    <rect x="690" y="390" width="650" height="250" rx="24" fill="#0F172A"/>
+    <text x="725" y="435" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">Dark mode</text>
+    
+    <g transform="translate(750 485) scale(1.5)">
+      <path d="M20 8H44C50.627 8 56 13.373 56 20" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M56 20V44C56 50.627 50.627 56 44 56" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44 56H20C13.373 56 8 50.627 8 44" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M8 44V20C8 13.373 13.373 8 20 8" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <rect x="22" y="20" width="7" height="24" rx="3.5" fill="#FFFFFF"/>
+      <rect x="35" y="20" width="7" height="24" rx="3.5" fill="#FFFFFF"/>
+      <rect x="27" y="29" width="10" height="6" rx="3" fill="#FFFFFF"/>
+    </g>
+    
+    <text x="885" y="552" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="40" font-weight="750" fill="#FFFFFF">Operations</text>
+    <text x="1082" y="552" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="40" font-weight="750" fill="#14B8A6">Hub</text>
+
+    <rect x="60" y="670" width="1280" height="260" rx="24" fill="#FFFFFF"/>
+    <text x="95" y="715" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Core palette</text>
+    <g transform="translate(95 755)">
+      <rect width="210" height="110" rx="16" fill="#0F172A"/>
+      <text x="18" y="77" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Ink</text>
+      <text x="18" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" fill="#CBD5E1">#0F172A</text>
+    </g>
+    <g transform="translate(330 755)">
+      <rect width="210" height="110" rx="16" fill="#2563EB"/>
+      <text x="18" y="77" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Primary</text>
+      <text x="18" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" fill="#DBEAFE">#2563EB</text>
+    </g>
+    <g transform="translate(565 755)">
+      <rect width="210" height="110" rx="16" fill="#14B8A6"/>
+      <text x="18" y="77" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Accent</text>
+      <text x="18" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" fill="#CCFBF1">#14B8A6</text>
+    </g>
+    <g transform="translate(800 755)">
+      <rect width="210" height="110" rx="16" fill="#475569"/>
+      <text x="18" y="77" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Slate</text>
+      <text x="18" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" fill="#E2E8F0">#475569</text>
+    </g>
+    <g transform="translate(1035 755)">
+      <rect width="210" height="110" rx="16" fill="#F8FAFC" stroke="#CBD5E1"/>
+      <text x="18" y="77" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0F172A">Surface</text>
+      <text x="18" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" fill="#475569">#F8FAFC</text>
+    </g>
+    
+</svg>

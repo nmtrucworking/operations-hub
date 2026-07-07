@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="72" viewBox="0 0 390 72" role="img" aria-labelledby="title">
+  <title id="title">Operations Hub wordmark</title>
+  
+  
+    <text x="12" y="48" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="42" font-weight="750" letter-spacing="-1.5" fill="#0F172A">
+      Operations
+    </text>
+    <text x="222" y="48" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="42" font-weight="750" letter-spacing="-1.5" fill="#2563EB">
+      Hub
+    </text>
+    
+</svg>

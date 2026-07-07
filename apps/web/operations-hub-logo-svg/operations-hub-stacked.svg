@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="250" viewBox="0 0 320 250" role="img" aria-labelledby="title">
+  <title id="title">Operations Hub stacked logo</title>
+  
+  
+    <g transform="translate(112 28) scale(1.5)">
+      <path d="M20 8H44C50.627 8 56 13.373 56 20" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M56 20V44C56 50.627 50.627 56 44 56" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <path d="M44 56H20C13.373 56 8 50.627 8 44" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/>
+      <path d="M8 44V20C8 13.373 13.373 8 20 8" fill="none" stroke="#14B8A6" stroke-width="8" stroke-linecap="round"/>
+      <rect x="22" y="20" width="7" height="24" rx="3.5" fill="#0F172A"/>
+      <rect x="35" y="20" width="7" height="24" rx="3.5" fill="#0F172A"/>
+      <rect x="27" y="29" width="10" height="6" rx="3" fill="#0F172A"/>
+    </g>
+    
+    <text x="160" y="166" text-anchor="middle" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="35" font-weight="750" letter-spacing="-1.2" fill="#0F172A">
+      Operations
+    </text>
+    <text x="160" y="205" text-anchor="middle" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="35" font-weight="750" letter-spacing="-1.2" fill="#2563EB">
+      Hub
+    </text>
+    <text x="160" y="230" text-anchor="middle" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="11" font-weight="600" letter-spacing="2.1" fill="#475569">
+      ORGANIZE · OPERATE · GROW
+    </text>
+    
+</svg>

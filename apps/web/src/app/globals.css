@@ -4,9 +4,16 @@
   color-scheme: light;
   --background: #ffffff;
   --foreground: #0f172a;
+  --oh-ink: #0f172a;
+  --oh-slate: #475569;
+  --oh-primary: #2563eb;
+  --oh-primary-dark: #1d4ed8;
+  --oh-accent: #14b8a6;
+  --oh-surface: #f8fafc;
+  --oh-white: #ffffff;
   --muted: #64748b;
   --border: #dbe3ef;
-  --primary: #1d4ed8;
+  --primary: var(--oh-primary);
   --primary-foreground: #ffffff;
 }
 
