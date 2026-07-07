@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "type": "commonjs",
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build",
+    "dev": "pnpm --filter @operations-hub/shared build && nest start --watch",
+    "build": "pnpm --filter @operations-hub/shared build && nest build",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
+    "test": "pnpm --filter @operations-hub/shared build && vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:seed": "tsx prisma/seed.ts"

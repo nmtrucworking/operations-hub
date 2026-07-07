@@ -1,4 +1,10 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "paths": {
+      "@operations-hub/shared": ["packages/shared/dist/index.d.ts"]
+    }
+  },
   "exclude": ["test", "**/*.spec.ts", "prisma"]
 }
