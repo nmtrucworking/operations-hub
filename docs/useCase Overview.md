@@ -1,5 +1,5 @@
-﻿Hệ thống Operations-Hub được triển khai theo 20 nhóm Use Case, trong đó
-- 14 nhóm kế thừa từ SRS hệ thống vận hành tham chiếu;
+Hệ thống Operations-Hub được triển khai theo 20 nhóm Use Case, trong đó
+- 14 nhóm kế thừa từ SRS MTEC Operations Hub;
 - 6 nhóm định hướng hệ thống cho nhiều loại tổ chức sinh viên, có kiến trúc module và tùy chỉnh branding
 bao gồm:
 

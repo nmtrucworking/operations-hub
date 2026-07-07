@@ -67,16 +67,19 @@ rectangle "Xác thực và quản lý phiên" {
   usecase "UC-AUTH-07\nChọn và chuyển tenant context" as UUC_AUTH_07
 }
 A1 -- UUC_AUTH_01
+
 A2 -- UUC_AUTH_01
-A3 -- UUC_AUTH_02
 A2 -- UUC_AUTH_02
-A3 -- UUC_AUTH_03
 A2 -- UUC_AUTH_03
+A2 -- UUC_AUTH_05
+
+A3 -- UUC_AUTH_02
+A3 -- UUC_AUTH_03
 A3 -- UUC_AUTH_04
 A3 -- UUC_AUTH_05
-A2 -- UUC_AUTH_05
 A3 -- UUC_AUTH_06
 A3 -- UUC_AUTH_07
+
 @enduml
 ```
 

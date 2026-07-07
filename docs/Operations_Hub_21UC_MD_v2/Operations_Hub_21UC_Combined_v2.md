@@ -1,4 +1,4 @@
-﻿---<!-- FILE: 00_README.md -->
+---<!-- FILE: 00_README.md -->
 
 ```table-of-contents
 ```
@@ -7,7 +7,7 @@
 
 ## 1. Mục đích
 
-Bộ tài liệu này mô tả toàn bộ 21 nhóm Use Case của Operations Hub theo định hướng nền tảng SaaS đa tổ chức dành cho tổ chức sinh viên. hệ thống vận hành tham chiếu được sử dụng như trường hợp tham chiếu nghiệp vụ, không phải cấu hình bắt buộc của nền tảng.
+Bộ tài liệu này mô tả toàn bộ 21 nhóm Use Case của Operations Hub theo định hướng nền tảng SaaS đa tổ chức dành cho tổ chức sinh viên. MTEC Operations Hub được sử dụng như trường hợp tham chiếu nghiệp vụ, không phải cấu hình bắt buộc của nền tảng.
 
 ## 2. Cấu trúc bộ tài liệu
 
@@ -3051,7 +3051,7 @@ Actor trong sơ đồ chỉ thể hiện vai trò tương tác. Quyền thực t
 - Đơn vị cha và con phải thuộc cùng tenant.
 - Cơ cấu không được tạo vòng lặp.
 - Đơn vị có dữ liệu liên quan không được xóa vật lý trực tiếp.
-- Tên ban và chức danh riêng của tổ chức tham chiếu không được mã hóa thành bắt buộc của nền tảng.
+- Tên ban và chức danh riêng của MTEC không được mã hóa thành bắt buộc của nền tảng.
 
 ## 10. Mô hình dữ liệu logic liên quan
 
@@ -3097,7 +3097,7 @@ Các kiểm tra bắt buộc:
 | `AC-ORG-01` | Không tạo được vòng lặp trong cây tổ chức. | Functional / Integration / Security Test tùy nội dung |
 | `AC-ORG-02` | Không thể liên kết đơn vị hoặc membership khác tenant. | Functional / Integration / Security Test tùy nội dung |
 | `AC-ORG-03` | Vô hiệu hóa đơn vị không làm mất lịch sử nghiệp vụ. | Functional / Integration / Security Test tùy nội dung |
-| `AC-ORG-04` | Tenant mới có thể cấu hình cơ cấu mà không phụ thuộc tên gọi của tổ chức tham chiếu. | Functional / Integration / Security Test tùy nội dung |
+| `AC-ORG-04` | Tenant mới có thể cấu hình cơ cấu mà không phụ thuộc tên gọi của MTEC. | Functional / Integration / Security Test tùy nội dung |
 
 ## 13. Quan hệ với nhóm Use Case khác
 

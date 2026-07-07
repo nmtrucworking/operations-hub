@@ -1,8 +1,8 @@
-﻿# BỘ ĐẶC TẢ 21 NHÓM USE CASE — OPERATIONS HUB
+# BỘ ĐẶC TẢ 21 NHÓM USE CASE — OPERATIONS HUB
 
 ## 1. Mục đích
 
-Bộ tài liệu này mô tả toàn bộ 21 nhóm Use Case của Operations Hub theo định hướng nền tảng SaaS đa tổ chức dành cho tổ chức sinh viên. hệ thống vận hành tham chiếu được sử dụng như trường hợp tham chiếu nghiệp vụ, không phải cấu hình bắt buộc của nền tảng.
+Bộ tài liệu này mô tả toàn bộ 21 nhóm Use Case của Operations Hub theo định hướng nền tảng SaaS đa tổ chức dành cho tổ chức sinh viên. MTEC Operations Hub được sử dụng như trường hợp tham chiếu nghiệp vụ, không phải cấu hình bắt buộc của nền tảng.
 
 ## 2. Cấu trúc bộ tài liệu
 

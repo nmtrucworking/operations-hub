@@ -70,16 +70,21 @@ rectangle "Quản lý đơn từ và yêu cầu nội bộ" {
   usecase "UC-REQUEST-08\nBáo cáo và xuất dữ liệu yêu cầu" as UUC_REQUEST_08
 }
 A1 -- UUC_REQUEST_01
+
 A2 -- UUC_REQUEST_01
+A2 -- UUC_REQUEST_05
+A2 -- UUC_REQUEST_07
+A2 -- UUC_REQUEST_08
+
 A3 -- UUC_REQUEST_02
 A3 -- UUC_REQUEST_03
 A3 -- UUC_REQUEST_04
+
 A4 -- UUC_REQUEST_04
-A2 -- UUC_REQUEST_05
 A4 -- UUC_REQUEST_05
 A4 -- UUC_REQUEST_06
-A2 -- UUC_REQUEST_07
-A2 -- UUC_REQUEST_08
+
+
 A5 -- UUC_REQUEST_08
 @enduml
 ```

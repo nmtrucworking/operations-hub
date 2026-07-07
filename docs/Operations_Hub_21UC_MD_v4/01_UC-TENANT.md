@@ -75,19 +75,22 @@ rectangle "Quản trị nền tảng SaaS và tenant" {
   usecase "UC-TENANT-10\nHỗ trợ quản trị tenant có kiểm soát" as UUC_TENANT_10
 }
 A1 -- UUC_TENANT_01
+
 A2 -- UUC_TENANT_02
 A2 -- UUC_TENANT_03
 A2 -- UUC_TENANT_04
 A2 -- UUC_TENANT_05
-A3 -- UUC_TENANT_06
-A3 -- UUC_TENANT_07
 A2 -- UUC_TENANT_07
-A3 -- UUC_TENANT_08
-A4 -- UUC_TENANT_08
-A3 -- UUC_TENANT_09
 A2 -- UUC_TENANT_09
 A2 -- UUC_TENANT_10
+
+A3 -- UUC_TENANT_06
+A3 -- UUC_TENANT_07
+A3 -- UUC_TENANT_08
+A3 -- UUC_TENANT_09
 A3 -- UUC_TENANT_10
+
+A4 -- UUC_TENANT_08
 @enduml
 ```
 

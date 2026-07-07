@@ -1,3 +1,8 @@
+---
+ucGroupID: UC-USER
+versionModal: V4
+version: "1.2"
+---
 # UC-USER — Quản lý tài khoản người dùng
 
 ## 1. Thông tin tài liệu
@@ -67,9 +72,11 @@ rectangle "Quản lý tài khoản người dùng" {
 }
 A1 -- UUC_USER_01
 A1 -- UUC_USER_02
-A2 -- UUC_USER_02
 A1 -- UUC_USER_03
 A1 -- UUC_USER_04
+
+A2 -- UUC_USER_02
+
 A3 -- UUC_USER_05
 A3 -- UUC_USER_06
 A3 -- UUC_USER_07

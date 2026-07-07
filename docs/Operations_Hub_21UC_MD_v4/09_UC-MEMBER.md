@@ -71,21 +71,26 @@ rectangle "Quản lý thành viên và membership" {
   usecase "UC-MEMBER-08\nNhập, xuất và cập nhật hàng loạt thành viên" as UUC_MEMBER_08
 }
 A1 -- UUC_MEMBER_01
-A2 -- UUC_MEMBER_01
-A3 -- UUC_MEMBER_02
 A1 -- UUC_MEMBER_02
-A3 -- UUC_MEMBER_03
 A1 -- UUC_MEMBER_03
 A1 -- UUC_MEMBER_04
-A4 -- UUC_MEMBER_04
 A1 -- UUC_MEMBER_05
-A2 -- UUC_MEMBER_05
 A1 -- UUC_MEMBER_06
-A5 -- UUC_MEMBER_06
-A3 -- UUC_MEMBER_07
-A4 -- UUC_MEMBER_07
 A1 -- UUC_MEMBER_07
 A1 -- UUC_MEMBER_08
+
+A2 -- UUC_MEMBER_05
+A2 -- UUC_MEMBER_01
+
+A3 -- UUC_MEMBER_02
+A3 -- UUC_MEMBER_03
+A3 -- UUC_MEMBER_07
+
+A4 -- UUC_MEMBER_04
+A4 -- UUC_MEMBER_07
+
+A5 -- UUC_MEMBER_06
+
 @enduml
 ```
 

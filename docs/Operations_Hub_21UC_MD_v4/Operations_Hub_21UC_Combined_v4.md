@@ -1,4 +1,4 @@
-﻿# OPERATIONS HUB — 21 NHÓM USE CASE V4
+# OPERATIONS HUB — 21 NHÓM USE CASE V4
 
 > Bản hợp nhất. Các liên kết tương đối trong từng phần được giữ theo cấu trúc thư mục V4.
 
@@ -952,7 +952,7 @@ Quản lý hồ sơ, đơn vị, chức vụ, nhiệm kỳ và lịch sử cơ c
 - Mỗi đơn vị thuộc duy nhất một tenant.
 - Đơn vị cha và con phải cùng tenant; không được tạo chu trình.
 - Đơn vị có dữ liệu liên quan không được xóa vật lý trực tiếp.
-- Tên ban và chức vụ riêng của tổ chức tham chiếu không được mã hóa thành mặc định bắt buộc.
+- Tên ban và chức vụ riêng của MTEC không được mã hóa thành mặc định bắt buộc.
 
 ## 7. Quan hệ với nhóm Use Case khác
 
