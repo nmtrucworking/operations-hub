@@ -36,6 +36,44 @@ type TenantRegistrationResponse = {
   status: string;
 };
 
+function getSignedInDraftKey(userId: string) {
+  return `${DRAFT_KEY}:${userId}`;
+}
+
+function readScopedDraft() {
+  const session = readSession();
+  if (session?.user?.id) {
+    const key = getSignedInDraftKey(session.user.id);
+    let raw = window.localStorage.getItem(key);
+    if (!raw) {
+      const guestDraft = window.sessionStorage.getItem(DRAFT_KEY);
+      if (guestDraft) {
+        raw = guestDraft;
+        window.localStorage.setItem(key, guestDraft);
+        window.sessionStorage.removeItem(DRAFT_KEY);
+      }
+    }
+    return raw;
+  }
+  return window.sessionStorage.getItem(DRAFT_KEY);
+}
+
+function writeScopedDraft(draft: RegistrationDraft) {
+  const raw = JSON.stringify(draft);
+  const session = readSession();
+  if (session?.user?.id) {
+    window.localStorage.setItem(getSignedInDraftKey(session.user.id), raw);
+    return;
+  }
+  window.sessionStorage.setItem(DRAFT_KEY, raw);
+}
+
+function clearScopedDraft() {
+  const session = readSession();
+  if (session?.user?.id) window.localStorage.removeItem(getSignedInDraftKey(session.user.id));
+  window.sessionStorage.removeItem(DRAFT_KEY);
+}
+
 export function OrganizationRequestForm() {
   const router = useRouter();
   const [hasSession, setHasSession] = useState(false);
@@ -57,7 +95,7 @@ export function OrganizationRequestForm() {
     if (session?.user?.email) setContactEmail((current) => current || session.user!.email);
     if (session?.user?.fullName) setRepresentativeName((current) => current || session.user!.fullName);
 
-    const rawDraft = window.localStorage.getItem(DRAFT_KEY);
+    const rawDraft = readScopedDraft();
     if (!rawDraft) return;
     try {
       const draft = JSON.parse(rawDraft) as RegistrationDraft;
@@ -67,9 +105,9 @@ export function OrganizationRequestForm() {
       setPurpose(draft.purpose ?? "");
       setRepresentativeName(draft.representativeName || session?.user?.fullName || "");
       setWebsiteOrReference(draft.websiteOrReference ?? "");
-      setDraftMessage("Đã khôi phục bản nháp được lưu trên thiết bị này.");
+      setDraftMessage("Đã khôi phục bản nháp của phiên/tài khoản hiện tại.");
     } catch {
-      window.localStorage.removeItem(DRAFT_KEY);
+      clearScopedDraft();
     }
   }, []);
 
@@ -82,13 +120,18 @@ export function OrganizationRequestForm() {
       representativeName,
       websiteOrReference
     };
-    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    setDraftMessage("Đã lưu bản nháp cục bộ trên thiết bị. Bản nháp này chưa được gửi lên hệ thống.");
+    writeScopedDraft(draft);
+    setDraftMessage(
+      hasSession
+        ? "Đã lưu bản nháp cục bộ cho tài khoản này trên thiết bị. Bản nháp chưa được gửi lên hệ thống."
+        : "Đã lưu bản nháp tạm trong phiên trình duyệt. Đăng nhập trong cùng tab để tiếp tục."
+    );
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!hasSession) {
+      saveDraft();
       router.push("/auth/login?returnTo=/organizations/new");
       return;
     }
@@ -111,7 +154,7 @@ export function OrganizationRequestForm() {
           websiteOrReference: websiteOrReference || undefined
         })
       });
-      window.localStorage.removeItem(DRAFT_KEY);
+      clearScopedDraft();
       router.push(`/organizations/new/success?ref=${encodeURIComponent(response.data.id)}`);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Không thể gửi hồ sơ đăng ký tổ chức.");
@@ -124,7 +167,7 @@ export function OrganizationRequestForm() {
     <form className="grid gap-6" onSubmit={submit}>
       {!hasSession ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          Bạn có thể chuẩn bị biểu mẫu công khai, nhưng cần đăng nhập trước khi gửi hồ sơ tạo tenant.
+          Bạn có thể chuẩn bị biểu mẫu công khai, nhưng cần đăng nhập trước khi gửi hồ sơ tạo tenant. Bản nháp trước đăng nhập chỉ được giữ trong phiên tab hiện tại.
         </div>
       ) : null}
       {draftMessage ? <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900" role="status">{draftMessage}</div> : null}
@@ -199,7 +242,7 @@ export function OrganizationRequestForm() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Button disabled={loading} onClick={saveDraft} type="button" variant="secondary">
-          Lưu bản nháp trên thiết bị
+          Lưu bản nháp
         </Button>
         <Button disabled={!confirmed || loading} type="submit">
           {loading ? "Đang gửi hồ sơ..." : hasSession ? "Gửi hồ sơ đăng ký tổ chức" : "Đăng nhập để gửi hồ sơ"}
