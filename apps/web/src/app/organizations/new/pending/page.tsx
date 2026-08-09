@@ -10,10 +10,10 @@ export default function OrganizationPendingPage() {
   return (
     <StatusPage
       code="ORG-PENDING"
-      title="Yêu cầu đang chờ xử lý"
-      description="Yêu cầu tổ chức đang được xem xét. Trang này không hiển thị ghi chú nội bộ hoặc dữ liệu xét duyệt nhạy cảm."
-      primaryHref="/dashboard"
-      primaryLabel="Về tài khoản"
+      title="Hồ sơ đang chờ xử lý"
+      description="Hồ sơ tổ chức đang được xem xét. Trang trạng thái không hiển thị ghi chú nội bộ hoặc dữ liệu thẩm định nhạy cảm."
+      primaryHref="/organizations"
+      primaryLabel="Theo dõi hồ sơ"
       secondaryHref="/contact"
       secondaryLabel="Liên hệ hỗ trợ"
     />
