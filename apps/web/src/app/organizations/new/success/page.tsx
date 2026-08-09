@@ -10,11 +10,11 @@ export default async function OrganizationSuccessPage({ searchParams }: { search
   const { ref } = await searchParams;
   return (
     <StatusPage
-      code={ref ? `Mã tham chiếu: ${ref}` : "Mã tham chiếu sẽ được backend cấp khi tích hợp"}
-      title="Yêu cầu đăng ký đã được ghi nhận"
-      description="Tenant chưa được xem là hoạt động cho đến khi quy trình xét duyệt hoàn tất. Bạn sẽ nhận hướng dẫn tiếp theo qua kênh liên hệ đã cung cấp."
-      primaryHref="/dashboard"
-      primaryLabel="Về tài khoản"
+      code={ref ? `Mã hồ sơ: ${ref}` : "Mã hồ sơ không khả dụng"}
+      title="Hồ sơ đăng ký đã được ghi nhận"
+      description="Tenant chưa được xem là hoạt động cho đến khi xét duyệt và provisioning hoàn tất. Người gửi cũng chưa trở thành Owner chỉ vì hồ sơ đã được tiếp nhận."
+      primaryHref="/organizations"
+      primaryLabel="Theo dõi hồ sơ"
       secondaryHref="/start"
       secondaryLabel="Quay lại bắt đầu"
     />
