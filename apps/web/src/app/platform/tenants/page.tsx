@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppShell } from "@/components/app-shell";
+import { PlatformShell } from "@/components/platform-shell";
 import { PlatformTenantConsole } from "@/components/tenant/platform-tenant-console";
 
 export const metadata: Metadata = {
@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function PlatformTenantsPage() {
   return (
-    <AppShell>
+    <PlatformShell>
       <PlatformTenantConsole />
-    </AppShell>
+    </PlatformShell>
   );
 }
