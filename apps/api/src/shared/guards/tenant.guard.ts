@@ -30,12 +30,16 @@ export class TenantGuard implements CanActivate {
       context.getHandler(),
       context.getClass()
     ]);
-    const candidateTenantId = req.header("x-tenant-id") ?? req.user?.tenantId;
     const tenantRequired = Boolean(requiredPermissions?.length || requiredModule);
-    if (!candidateTenantId) {
-      if (tenantRequired) throw new ForbiddenException("Tenant context is required");
-      return true;
-    }
+
+    // Global authenticated routes (for example /auth/select-tenant, /tenants,
+    // /tenant-registrations) must remain usable even when the access token was
+    // previously scoped to a tenant that has since been suspended/archived.
+    // A stale tenant context must not trap a platform user inside that tenant.
+    if (!tenantRequired) return true;
+
+    const candidateTenantId = req.header("x-tenant-id") ?? req.user?.tenantId;
+    if (!candidateTenantId) throw new ForbiddenException("Tenant context is required");
 
     const membership = await this.prisma.membership.findFirst({
       where: {
