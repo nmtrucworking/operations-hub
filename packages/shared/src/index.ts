@@ -65,11 +65,33 @@ export enum AuditResult {
   Failure = "FAILURE"
 }
 
+export enum PlatformRole {
+  PlatformAdmin = "PLATFORM_ADMIN",
+  PlatformReviewer = "PLATFORM_REVIEWER",
+  PlatformSupport = "PLATFORM_SUPPORT"
+}
+
 export const PERMISSIONS = {
   tenantRead: "tenant:read",
   userRead: "user:read",
   roleRead: "role:read",
   roleManage: "role:manage",
+  moduleRead: "module:read",
+  moduleManage: "module:manage",
+  ownershipRead: "ownership:read",
+  ownershipManage: "ownership:manage",
+  brandingRead: "branding:read",
+  brandingManage: "branding:manage",
+  domainRead: "domain:read",
+  domainManage: "domain:manage",
+  serviceRead: "service:read",
+  serviceManage: "service:manage",
+  closureRead: "closure:read",
+  closureManage: "closure:manage",
+  supportRead: "support:read",
+  supportManage: "support:manage",
+  organizationRead: "organization:read",
+  organizationManage: "organization:manage",
   memberRead: "member:read",
   memberManage: "member:manage",
   requestRead: "request:read",

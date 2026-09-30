@@ -57,6 +57,9 @@ export class RbacService {
     if (invalid.length) throw new BadRequestException(`Unknown permissions: ${invalid.join(", ")}`);
     const role = await this.prisma.role.findFirst({ where: { id: roleId, tenantId } });
     if (!role) throw new NotFoundException("Role not found");
+    if (role.code === "OWNER" || role.name === "Owner") {
+      throw new BadRequestException("Owner role permissions are managed by the ownership projection");
+    }
     const permissions = await this.prisma.permission.findMany({ where: { code: { in: codes } } });
     await this.prisma.$transaction([
       this.prisma.rolePermission.deleteMany({ where: { roleId } }),
@@ -87,6 +90,9 @@ export class RbacService {
     ]);
     if (!membership) throw new NotFoundException("Membership not found");
     if (!role) throw new NotFoundException("Role not found");
+    if (role.code === "OWNER" || role.name === "Owner") {
+      throw new BadRequestException("Use the tenant ownership API to assign Owner");
+    }
     const assignment = await this.prisma.membershipRole.upsert({
       where: { membershipId_roleId: { membershipId, roleId } },
       create: { membershipId, roleId },

@@ -14,9 +14,11 @@ import { RequestsModule } from "./requests/requests.module";
 import { CorrelationMiddleware } from "./shared/correlation.middleware";
 import { JwtAuthGuard } from "./shared/guards/jwt-auth.guard";
 import { ModuleGuard } from "./shared/guards/module.guard";
+import { PlatformRoleGuard } from "./shared/guards/platform-role.guard";
 import { PermissionGuard } from "./shared/guards/permission.guard";
 import { TenantGuard } from "./shared/guards/tenant.guard";
 import { TenantsModule } from "./tenants/tenants.module";
+import { OrganizationModule } from "./organization/organization.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({
@@ -32,11 +34,13 @@ import { UsersModule } from "./users/users.module";
     RequestsModule,
     FinanceModule,
     DashboardModule,
-    ModulesModule
+    ModulesModule,
+    OrganizationModule
   ],
   controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: PlatformRoleGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: ModuleGuard },
     { provide: APP_GUARD, useClass: PermissionGuard }

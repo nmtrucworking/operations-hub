@@ -59,15 +59,15 @@
 | Use case | Surface | Trạng thái hiện tại | Ghi chú |
 |---|---|---|---|
 | `UC-TENANT-01` Đăng ký tổ chức | `/organizations/new`, `/organizations` | **Live cơ bản** | POST hồ sơ thật, list hồ sơ của chính user, withdraw; evidence upload chưa có |
-| `UC-TENANT-02` Xử lý hồ sơ | `/platform/tenants` → Hồ sơ đăng ký | **UI contract** | Chưa expose Platform Admin review API |
-| `UC-TENANT-03` Khởi tạo tenant | `/platform/tenants` → Provisioning | **UI contract** | Phải là server-side transaction, không orchestration ở FE |
-| `UC-TENANT-04` Danh mục tenant | `/platform/tenants` → Danh mục | **UI contract** | API hiện tại `/tenants` chỉ trả tenant của user |
-| `UC-TENANT-05` Vòng đời tenant | `/tenant`, `/platform/tenants` | **UI contract** | Chưa expose transition API |
-| `UC-TENANT-06` Quyền sở hữu tenant | `/tenant` → Quyền sở hữu | **UI contract** | Không suy Owner từ tên role; cần ownership endpoint |
-| `UC-TENANT-07` Dịch vụ & hạn mức | `/tenant` → Dịch vụ | **UI contract** | Chưa có subscription/limit API chính thức |
-| `UC-TENANT-08` Tên miền tenant | `/tenant` → Tên miền | **UI contract** | Prisma có `CustomDomain`, controller chưa expose |
-| `UC-TENANT-09` Đóng/xử lý dữ liệu | `/tenant`, `/platform/tenants` | **UI contract** | Cần close request + grace period + retention model |
-| `UC-TENANT-10` Hỗ trợ có kiểm soát | `/tenant`, `/platform/tenants` | **UI contract** | Chưa có support request/grant model/API |
+| `UC-TENANT-02` Xử lý hồ sơ | `/platform/tenants` → Hồ sơ đăng ký | **Live baseline** | Platform Reviewer review/reject; Platform Admin approve |
+| `UC-TENANT-03` Khởi tạo tenant | `/platform/tenants` → Provisioning | **Live baseline** | Server-side Prisma transaction + rollback evidence |
+| `UC-TENANT-04` Danh mục tenant | `/platform/tenants` → Danh mục | **Live read-only** | Platform catalog không expose dữ liệu nghiệp vụ tenant |
+| `UC-TENANT-05` Vòng đời tenant | `/tenant`, `/platform/tenants` | **Live baseline** | Transition validation + lifecycle event + audit |
+| `UC-TENANT-06` Quyền sở hữu tenant | `/tenant` → Quyền sở hữu | **Live baseline** | `OwnershipAssignment` là SSOT; Owner role là projection |
+| `UC-TENANT-07` Dịch vụ & hạn mức | `/tenant`, `/platform/tenants` | **Live baseline** | `ServicePlan` → `TenantServiceSubscription` → limit/usage; pricing/billing engine chưa nằm trong phạm vi baseline |
+| `UC-TENANT-08` Tên miền tenant | `/tenant` → Tên miền | **Live baseline** | CRUD + DNS TXT challenge + verify qua DNS provider |
+| `UC-TENANT-09` Đóng/xử lý dữ liệu | `/tenant`, `/platform/tenants` | **Live workflow baseline** | Có retention policy, grace-period closure, cancel và export request; worker tạo export/disposition vật lý chưa triển khai |
+| `UC-TENANT-10` Hỗ trợ có kiểm soát | `/tenant`, `/platform/tenants` | **Live baseline** | Request/grant/revoke, scope + expiry; grant không tạo Membership/Owner |
 
 ---
 
@@ -133,9 +133,13 @@ Live data:
 
 - `GET /tenants/current`;
 - `GET /modules`;
-- `PATCH /modules`.
+- `PATCH /modules`;
+- `GET/POST/DELETE /tenants/current/owners`;
+- `POST /tenants/current/ownership/transfer`;
+- `GET/PATCH /tenants/current/branding`;
+- `GET/POST/DELETE /tenants/current/domains`.
 
-UI contract đã có cho ownership, service/limits, domains, lifecycle/data và support access nhưng không tạo record giả khi backend chưa có endpoint.
+Service/limits, close/retention, DNS verification và support access đã nối vào domain model/API thật. Close workflow hiện dừng ở orchestration state: chưa có background processor tạo file export hoặc thực thi delete/anonymize vật lý.
 
 ### 4.6. Platform Tenant Console
 
@@ -144,11 +148,13 @@ UI contract đã có cho ownership, service/limits, domains, lifecycle/data và 
 Surface đã mô hình hóa:
 
 - registration queue và filter;
-- registration detail/review contract;
+- registration detail/review live;
 - tenant catalog;
 - provisioning transaction checklist;
-- lifecycle transition dialog contract;
-- support request/grant contract.
+- lifecycle transition live;
+- service plan/limit/subscription management;
+- closure queue và decision;
+- controlled support request/grant/revoke.
 
 Nếu session không có `platformRole`, UI không tải dữ liệu platform. Route visibility không thay thế backend authorization.
 
@@ -218,15 +224,13 @@ ARCHIVED → restore only when retention + invariants permit
 
 ## 7. Những điểm còn thiếu hoặc cần quyết định
 
-### GAP-TEN-001 — Platform role taxonomy chưa được chuẩn hóa
+### GAP-TEN-001 — Platform role taxonomy — ĐÃ XỬ LÝ BASELINE
 
-`User.platformRole` đang là `String?`, chưa có enum/permission model cấp platform đủ rõ. Không nên hard-code nhiều biến thể tên role ở frontend.
+Shared enum `PlatformRole` và centralized `PlatformRoleGuard` đã tách `PLATFORM_ADMIN`, `PLATFORM_REVIEWER`, `PLATFORM_SUPPORT`. Prisma field vẫn là `String?`, nhưng mutation platform không còn dựa vào role string rải rác ở controller.
 
-**Đề xuất:** xây `PlatformRole`/`PlatformPermission` hoặc tối thiểu enum chuẩn trước khi mở Platform Admin mutation APIs.
+### GAP-TEN-002 — Platform registration review API — ĐÃ XỬ LÝ
 
-### GAP-TEN-002 — Platform registration review API chưa tồn tại
-
-Cần tối thiểu:
+Đã có:
 
 ```text
 GET  /platform/tenant-registrations
@@ -236,65 +240,37 @@ POST /platform/tenant-registrations/:id/reject
 POST /platform/tenant-registrations/:id/approve
 ```
 
-Approve phải điều phối provisioning transaction ở backend.
+Approve điều phối provisioning transaction ở backend và có rollback integration test.
 
-### GAP-TEN-003 — `TenantRegistration.proposedSlug @unique` có thể khóa slug vĩnh viễn
+### GAP-TEN-003 — Slug reservation — ĐÃ XỬ LÝ BASELINE
 
-Schema hiện tại đặt unique trực tiếp trên `proposedSlug`. Hệ quả: một hồ sơ `REJECTED` hoặc `WITHDRAWN` vẫn chiếm slug và hồ sơ khác không thể đăng ký lại slug đó.
+Unique DB constraint trên registration slug đã được bỏ. Service chỉ coi các hồ sơ đang hiệu lực là reservation; `REJECTED/WITHDRAWN` có thể nhường slug cho hồ sơ mới, trong khi `Tenant.slug` vẫn unique.
 
-Đây là ràng buộc **mạnh hơn** business rule “slug tenant phải duy nhất”. Cần quyết định rõ một trong các hướng:
+### GAP-TEN-004 — Owner SSOT — ĐÃ XỬ LÝ
 
-1. slug registration được reservation vĩnh viễn — phải ghi thành business rule; hoặc
-2. chỉ reservation đối với trạng thái đang hiệu lực — cần thay schema/logic; hoặc
-3. tái sử dụng cùng registration record qua quy trình re-submit có kiểm soát.
+`OwnershipAssignment` là SSOT. Role code `OWNER` là authorization projection được tạo/xóa cùng ownership mutation. Direct assignment hoặc sửa permission Owner qua RBAC service bị chặn. Last-owner invariant được kiểm tra cả ở owner API và membership status mutation.
 
-Không nên sửa ngầm vì đây là quyết định nghiệp vụ.
+### GAP-TEN-005 — Module permission semantic — ĐÃ XỬ LÝ
 
-### GAP-TEN-004 — Owner có hai biểu diễn tiềm năng
+`module:read` / `module:manage` đã được tách riêng và có integration test tenant isolation + disabled-module backend guard.
 
-Repo có `Role`/`MembershipRole` và đồng thời có `OwnershipAssignment`. UI hiện không suy Owner từ role name để tránh hai SSOT cạnh tranh.
+### GAP-TEN-006 — Branding SSOT — ĐÃ XỬ LÝ
 
-**Cần chốt:** `OwnershipAssignment` là SSOT của ownership; role Owner là authorization projection, hoặc ngược lại. Sau khi chốt mới expose mutation.
+`TenantBranding` là SSOT. `Tenant.brandColor` được giữ làm projection tương thích và được đồng bộ transactionally khi cập nhật branding. Tenant switch/list/current trả màu từ `TenantBranding.primaryColor` khi có.
 
-### GAP-TEN-005 — Module toggle đang dùng `role:manage`
+### GAP-TEN-007 — Service/limits — ĐÃ XỬ LÝ BASELINE
 
-Endpoint `PATCH /modules` hiện kiểm tra `PERMISSIONS.roleManage`. Về semantic authorization đây là coupling không tốt: quản lý role và quản lý module là hai trách nhiệm khác nhau.
+Đã bổ sung `ServicePlan`, `ServicePlanLimit`, `TenantServiceSubscription` và `TenantUsageCounter`. Plan/quota/usage tách khỏi RBAC; Tenant Owner chỉ quản lý liên hệ dịch vụ/billing, còn Platform Admin quản lý catalog plan, limit, subscription và usage. Baseline không tự suy đoán pricing hoặc billing rule.
 
-**Đề xuất:** bổ sung `module:read` / `module:manage`, migrate role mặc định và kiểm thử permission matrix.
+### GAP-TEN-008 — Close/retention — ĐÃ XỬ LÝ WORKFLOW BASELINE
 
-### GAP-TEN-006 — Branding có nguy cơ hai nguồn dữ liệu
+Đã bổ sung `TenantRetentionPolicy`, `TenantClosureRequest` và `TenantDataExportRequest`. Closure có grace period persisted, có thể hủy trước thời điểm xử lý và không làm physical delete ngay. Default policy được persist và Platform Admin có thể thay đổi; UI không hard-code thời hạn.
 
-`Tenant.brandColor` tồn tại đồng thời với relation `TenantBranding`. Session/switcher hiện dùng `Tenant.brandColor` vì API hiện hành trả field này.
+Phần còn thiếu là execution worker cho export artifact và disposition cuối cùng (delete/anonymize) sau khi đủ điều kiện. Vì vậy trạng thái `COMPLETED` không được coi là đã có processor production nếu worker chưa được triển khai.
 
-**Cần chốt SSOT:** giữ `brandColor` như denormalized projection/cache hoặc chuyển hoàn toàn sang `TenantBranding` và cung cấp branding context endpoint.
+### GAP-TEN-009 — Controlled support — ĐÃ XỬ LÝ BASELINE
 
-### GAP-TEN-007 — Service/limits chưa có domain model chính thức
-
-Không nên đưa pricing/subscription giả vào UI. Cần xác định product policy trước khi tạo model gói, quota, usage và billing contact.
-
-### GAP-TEN-008 — Close/retention chưa có policy cụ thể
-
-Business rule yêu cầu soft close/grace period/retention trước physical delete, nhưng chưa có số ngày/năm. UI không được hard-code thời hạn khi chưa có căn cứ.
-
-### GAP-TEN-009 — Support grant chưa có model
-
-Cần thực thể riêng chứa tối thiểu:
-
-```text
-requester
-approver
-platform actor
-tenant
-reason
-scope/resources
-startsAt
-expiresAt
-revokedAt
-status
-correlationId
-```
-
-Không dùng membership Owner/Admin tạm thời để mô phỏng support access.
+Đã bổ sung `TenantSupportRequest` và `TenantSupportGrant`. Grant có principal platform, scopes, `startsAt`, `expiresAt`, `revokedAt`; scope phải là tập con của request và các scope có thể leo thang quyền như Owner/RBAC/service/closure/support management bị chặn. Tenant guard chỉ cho phép truy cập trong grant còn hiệu lực và không tạo Membership/Owner tạm thời.
 
 ### GAP-TEN-010 — Evidence upload cho registration chưa nối File/Storage boundary
 
@@ -326,20 +302,23 @@ Form hiện chỉ nhận URL/reference text. Khi triển khai upload phải bả
 
 - [x] Overview dùng dữ liệu thật.
 - [x] Modules dùng API thật.
-- [x] Ownership không suy đoán Owner.
-- [x] Service/limits không hiển thị số liệu giả.
-- [x] Domains không suy custom domain từ slug.
+- [x] Ownership dùng API thật và `OwnershipAssignment` SSOT.
+- [x] Service/limits dùng API thật; plan/limit/usage tách khỏi RBAC.
+- [x] Domains list/create/revoke + DNS TXT challenge/verification dùng API thật.
 - [x] Lifecycle phân biệt suspend/archive/close/delete.
-- [x] Support không cung cấp impersonation mặc định.
+- [x] Closure có persisted retention + grace period + cancel + export request.
+- [x] Support request/grant/revoke dùng model riêng, có scope/expiry và không impersonate Owner.
 
 ### Platform surface
 
-- [x] Registration queue UI contract.
-- [x] Tenant catalog UI contract.
-- [x] Provisioning transaction contract.
-- [x] Lifecycle transition contract.
-- [x] Controlled support contract.
-- [ ] Platform APIs + permission model — còn thiếu backend.
+- [x] Registration queue + review API.
+- [x] Tenant catalog API read-only.
+- [x] Provisioning transaction.
+- [x] Lifecycle transition API.
+- [x] Service plan/limit/subscription management.
+- [x] Closure review queue.
+- [x] Controlled support grant API + platform surface.
+- [x] Platform baseline APIs + role guard.
 
 ### Security
 
@@ -352,17 +331,10 @@ Form hiện chỉ nhận URL/reference text. Khi triển khai upload phải bả
 
 ## 9. Thứ tự triển khai tiếp theo
 
-1. Chuẩn hóa platform role/permission.
-2. Xây Platform Registration Review API.
-3. Provisioning transaction + default role/module/branding seed.
-4. Platform tenant catalog + lifecycle transition API.
-5. Chốt Ownership SSOT và xây owner API.
-6. Tách module permission khỏi `role:manage`.
-7. Xây Custom Domain API + DNS verification.
-8. Chốt service/limit domain model.
-9. Chốt close/retention policy và data export flow.
-10. Xây controlled support grant.
-11. Bổ sung automated unit/integration/E2E test cho toàn bộ tenant flows.
+1. Triển khai data-export worker để tạo artifact thực và quản lý trạng thái `PROCESSING/COMPLETED/FAILED`.
+2. Triển khai retention/disposition worker cho delete/anonymize sau grace period, kèm retry/idempotency và audit.
+3. Nối evidence upload của tenant registration vào File/Storage boundary.
+4. Bổ sung automated frontend tests; backend integration hiện đã bao phủ UC-TENANT-07/08/09/10 baseline.
 
 ---
 
@@ -370,4 +342,4 @@ Form hiện chỉ nhận URL/reference text. Khi triển khai upload phải bả
 
 Nhóm Tenant UI hiện đã có đầy đủ surface chính cho bốn lớp actor: applicant, platform user có nhiều tenant, Tenant Owner/Admin và Platform Admin. Phần có backend hiện hữu được nối bằng dữ liệu thật; phần backend chưa tồn tại chỉ hoàn thiện UI contract và state model, không tạo dữ liệu giả hoặc mutation giả thành công.
 
-Điểm cần ưu tiên tiếp không phải thêm nhiều màn hình, mà là hoàn thiện platform authorization + review/provisioning/lifecycle APIs. Đây là các dependency quyết định để chuyển những surface `UI contract` thành chức năng production mà vẫn giữ được tenant isolation và business invariants.
+Platform authorization, review/provisioning, lifecycle, ownership, branding, service/limits, DNS verification, close/retention workflow và controlled support hiện đã có backend thực cùng tenant/platform UI baseline. Phần chưa hoàn tất ở mức production là xử lý bất đồng bộ tạo data export, disposition delete/anonymize, evidence upload và automated frontend tests; DNS verification production còn phụ thuộc resolver/DNS propagation bên ngoài.

@@ -111,6 +111,43 @@ enum LedgerDirection {
   CREDIT
 }
 
+enum ServiceSubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum TenantClosureStatus {
+  REQUESTED
+  CANCELLED
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum TenantDataExportStatus {
+  REQUESTED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TenantSupportRequestStatus {
+  OPEN
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
+enum DomainVerificationChallengeStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  REVOKED
+}
+
 model User {
   id                          String                   @id @default(uuid())
   email                       String                   @unique
@@ -144,6 +181,10 @@ model User {
   auditLogs                   AuditLog[]               @relation("AuditActor")
   createdRequests             Request[]                @relation("RequestCreator")
   financeCreated              FinanceTransaction[]     @relation("FinanceCreator")
+  reviewedSupportRequests     TenantSupportRequest[]   @relation("SupportRequestReviewer")
+  supportGrants               TenantSupportGrant[]     @relation("SupportGrantPrincipal")
+  revokedSupportGrants        TenantSupportGrant[]     @relation("SupportGrantRevoker")
+  decidedClosureRequests      TenantClosureRequest[]   @relation("TenantClosureDecisionActor")
 }
 
 model Session {
@@ -162,13 +203,13 @@ model Session {
 }
 
 model Tenant {
-  id                      String                   @id @default(uuid())
+  id                      String                      @id @default(uuid())
   name                    String
-  slug                    String                   @unique
-  status                  TenantStatus             @default(ACTIVE)
-  brandColor              String                   @default("#2563eb")
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  slug                    String                      @unique
+  status                  TenantStatus                @default(ACTIVE)
+  brandColor              String                      @default("#2563eb")
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
   memberships             Membership[]
   tenantRegistrations     TenantRegistration[]
   lifecycleEvents         TenantLifecycleEvent[]
@@ -223,6 +264,13 @@ model Tenant {
   auditEvents             AuditEvent[]
   auditLogs               AuditLog[]
   modules                 TenantModule[]
+  serviceSubscriptions    TenantServiceSubscription[]
+  usageCounters           TenantUsageCounter[]
+  retentionPolicy         TenantRetentionPolicy?
+  closureRequests         TenantClosureRequest[]
+  dataExportRequests      TenantDataExportRequest[]
+  supportRequests         TenantSupportRequest[]
+  supportGrants           TenantSupportGrant[]
 }
 
 model TenantModule {
@@ -309,6 +357,10 @@ model Membership {
   aiRequests                  AiRequest[]
   aiFeedbacks                 AiFeedback[]
   auditEvents                 AuditEvent[]               @relation("AuditEventActorMembership")
+  requestedClosures           TenantClosureRequest[]     @relation("TenantClosureRequester")
+  cancelledClosures           TenantClosureRequest[]     @relation("TenantClosureCanceller")
+  requestedDataExports        TenantDataExportRequest[]  @relation("TenantDataExportRequester")
+  requestedSupport            TenantSupportRequest[]     @relation("SupportRequestRequester")
 
   @@unique([userId, tenantId])
   @@index([tenantId, status])
@@ -661,7 +713,7 @@ model TenantRegistration {
   reviewer        User?                    @relation("TenantRegistrationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   createdTenant   Tenant?                  @relation(fields: [createdTenantId], references: [id], onDelete: SetNull)
 
-  @@unique([proposedSlug])
+  @@index([proposedSlug])
   @@index([applicantUserId])
   @@index([createdTenantId])
   @@index([status, submittedAt])
@@ -716,6 +768,7 @@ model OrganizationUnit {
   code            String
   name            String
   status          String             @default("ACTIVE")
+  sortOrder       Int                @default(0)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -1207,16 +1260,196 @@ model BrandingVersion {
 }
 
 model CustomDomain {
-  id                 String    @id @default(uuid())
-  tenantId           String
-  hostname           String    @unique
-  verificationStatus String    @default("PENDING")
-  verifiedAt         DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                     String                        @id @default(uuid())
+  tenantId               String
+  hostname               String                        @unique
+  verificationStatus     String                        @default("PENDING")
+  verifiedAt             DateTime?
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @updatedAt
+  tenant                 Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  verificationChallenges DomainVerificationChallenge[]
 
   @@index([tenantId])
+}
+
+model DomainVerificationChallenge {
+  id             String                            @id @default(uuid())
+  customDomainId String
+  recordName     String
+  expectedValue  String
+  status         DomainVerificationChallengeStatus @default(PENDING)
+  expiresAt      DateTime
+  verifiedAt     DateTime?
+  createdAt      DateTime                          @default(now())
+  updatedAt      DateTime                          @updatedAt
+  customDomain   CustomDomain                      @relation(fields: [customDomainId], references: [id], onDelete: Cascade)
+
+  @@index([customDomainId, status])
+  @@index([expiresAt])
+}
+
+model ServicePlan {
+  id              String                      @id @default(uuid())
+  code            String                      @unique
+  name            String
+  description     String?
+  isActive        Boolean                     @default(true)
+  priceAmount     Decimal?                    @db.Decimal(18, 2)
+  currency        String?
+  billingInterval String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  limits          ServicePlanLimit[]
+  subscriptions   TenantServiceSubscription[]
+}
+
+model ServicePlanLimit {
+  id        String      @id @default(uuid())
+  planId    String
+  metricKey String
+  maxValue  Int
+  unit      String      @default("count")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  plan      ServicePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, metricKey])
+  @@index([planId])
+}
+
+model TenantServiceSubscription {
+  id                  String                    @id @default(uuid())
+  tenantId            String
+  planId              String
+  status              ServiceSubscriptionStatus @default(ACTIVE)
+  serviceContactEmail String?
+  billingContactEmail String?
+  startsAt            DateTime                  @default(now())
+  endsAt              DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  tenant              Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                ServicePlan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, status])
+  @@index([planId])
+}
+
+model TenantUsageCounter {
+  id         String   @id @default(uuid())
+  tenantId   String
+  metricKey  String
+  periodKey  String   @default("lifetime")
+  usedValue  Int      @default(0)
+  measuredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, metricKey, periodKey])
+  @@index([tenantId])
+}
+
+model TenantRetentionPolicy {
+  id                      String   @id @default(uuid())
+  tenantId                String   @unique
+  gracePeriodDays         Int      @default(30)
+  retentionDays           Int      @default(90)
+  disposition             String   @default("ANONYMIZE")
+  exportBeforeDisposition Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  tenant                  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model TenantClosureRequest {
+  id                      String                    @id @default(uuid())
+  tenantId                String
+  requestedByMembershipId String
+  cancelledByMembershipId String?
+  decidedByUserId         String?
+  status                  TenantClosureStatus       @default(REQUESTED)
+  reason                  String
+  requestedAt             DateTime                  @default(now())
+  scheduledFor            DateTime
+  cancelledAt             DateTime?
+  decidedAt               DateTime?
+  completedAt             DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  tenant                  Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requester               Membership                @relation("TenantClosureRequester", fields: [requestedByMembershipId], references: [id], onDelete: Restrict)
+  canceller               Membership?               @relation("TenantClosureCanceller", fields: [cancelledByMembershipId], references: [id], onDelete: SetNull)
+  decisionActor           User?                     @relation("TenantClosureDecisionActor", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  exportRequests          TenantDataExportRequest[]
+
+  @@index([tenantId, status])
+  @@index([scheduledFor])
+}
+
+model TenantDataExportRequest {
+  id                      String                 @id @default(uuid())
+  tenantId                String
+  requestedByMembershipId String
+  closureRequestId        String?
+  status                  TenantDataExportStatus @default(REQUESTED)
+  format                  String                 @default("JSON")
+  storageRef              String?
+  requestedAt             DateTime               @default(now())
+  completedAt             DateTime?
+  expiresAt               DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  tenant                  Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requester               Membership             @relation("TenantDataExportRequester", fields: [requestedByMembershipId], references: [id], onDelete: Restrict)
+  closureRequest          TenantClosureRequest?  @relation(fields: [closureRequestId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@index([closureRequestId])
+}
+
+model TenantSupportRequest {
+  id                       String                     @id @default(uuid())
+  tenantId                 String
+  requestedByMembershipId  String
+  reason                   String
+  requestedScopes          String[]                   @default([])
+  requestedDurationMinutes Int
+  status                   TenantSupportRequestStatus @default(OPEN)
+  reviewedByUserId         String?
+  reviewNote               String?
+  reviewedAt               DateTime?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  tenant                   Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requester                Membership                 @relation("SupportRequestRequester", fields: [requestedByMembershipId], references: [id], onDelete: Restrict)
+  reviewer                 User?                      @relation("SupportRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  grant                    TenantSupportGrant?
+
+  @@index([tenantId, status])
+  @@index([reviewedByUserId])
+}
+
+model TenantSupportGrant {
+  id               String               @id @default(uuid())
+  tenantId         String
+  supportRequestId String               @unique
+  platformUserId   String
+  scopes           String[]             @default([])
+  startsAt         DateTime             @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  revokedByUserId  String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  tenant           Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  request          TenantSupportRequest @relation(fields: [supportRequestId], references: [id], onDelete: Cascade)
+  platformUser     User                 @relation("SupportGrantPrincipal", fields: [platformUserId], references: [id], onDelete: Restrict)
+  revokedBy        User?                @relation("SupportGrantRevoker", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, expiresAt])
+  @@index([platformUserId, expiresAt])
 }
 
 model FinanceCategory {

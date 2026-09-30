@@ -1,4 +1,5 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { MembershipStatus } from "@prisma/client";
 import { AuditAction, ModuleKey } from "@operations-hub/shared";
 import { AuditService } from "../audit/audit.service";
 import { PasswordService } from "../auth/password.service";
@@ -75,19 +76,42 @@ export class MembersService {
   async update(tenantId: string, actorId: string, id: string, dto: UpdateMemberDto, correlationId?: string) {
     const before = await this.prisma.membership.findFirst({ where: { id, tenantId }, include: { profile: true } });
     if (!before) throw new NotFoundException("Membership not found");
-    const updated = await this.prisma.membership.update({
-      where: { id },
-      data: {
-        title: dto.title,
-        status: dto.status,
-        profile: {
-          upsert: {
-            create: { tenantId, phone: dto.phone, bio: dto.bio },
-            update: { phone: dto.phone, bio: dto.bio }
+    const removesActiveMembership = dto.status !== undefined && dto.status !== MembershipStatus.ACTIVE;
+    const activeOwnership = removesActiveMembership
+      ? await this.prisma.ownershipAssignment.findFirst({ where: { tenantId, membershipId: id, effectiveTo: null } })
+      : null;
+    if (activeOwnership) {
+      const activeOwnerCount = await this.prisma.ownershipAssignment.count({
+        where: { tenantId, effectiveTo: null, membership: { status: MembershipStatus.ACTIVE } }
+      });
+      if (activeOwnerCount <= 1) {
+        throw new BadRequestException("The last active owner cannot be suspended or ended");
+      }
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const membership = await tx.membership.update({
+        where: { id },
+        data: {
+          title: dto.title,
+          status: dto.status,
+          profile: {
+            upsert: {
+              create: { tenantId, phone: dto.phone, bio: dto.bio },
+              update: { phone: dto.phone, bio: dto.bio }
+            }
           }
+        },
+        include: { user: true, profile: true }
+      });
+      if (activeOwnership) {
+        await tx.ownershipAssignment.update({ where: { id: activeOwnership.id }, data: { effectiveTo: new Date() } });
+        const ownerRole = await tx.role.findFirst({ where: { tenantId, OR: [{ code: "OWNER" }, { name: "Owner" }] } });
+        if (ownerRole) {
+          await tx.membershipRole.deleteMany({ where: { membershipId: id, roleId: ownerRole.id } });
         }
-      },
-      include: { user: true, profile: true }
+      }
+      return membership;
     });
     await this.audit.write({
       tenantId,

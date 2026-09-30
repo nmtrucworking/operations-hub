@@ -11,6 +11,8 @@ export type RequestContext = {
   user?: AuthUser;
   tenantId?: string;
   membershipId?: string;
+  supportGrantId?: string;
+  supportScopes?: string[];
   correlationId?: string;
 };
 
