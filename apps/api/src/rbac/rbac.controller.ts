@@ -46,4 +46,15 @@ export class RbacController {
   ) {
     return this.rbac.assignRole(tenantId, req.user!.userId, id, dto.roleId, req.correlationId);
   }
+
+  @Post("members/:id/roles/:roleId/revoke")
+  @Permissions(PERMISSIONS.roleManage)
+  revokeRole(
+    @TenantId() tenantId: string,
+    @Param("id") id: string,
+    @Param("roleId") roleId: string,
+    @Req() req: AppRequest
+  ) {
+    return this.rbac.revokeRole(tenantId, req.user!.userId, id, roleId, req.correlationId);
+  }
 }

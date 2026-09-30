@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Copy, Plus, Search, XCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { OrganizationNav } from "@/components/organization/organization-nav";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,22 @@ type MemberRow = {
   membershipPositions: { position: Position & { unit?: OrganizationUnit | null } }[];
   roles: { role: { id: string; name: string } }[];
 };
+
+
+type InvitationRow = {
+  id: string;
+  email: string;
+  fullName: string;
+  title?: string | null;
+  targetUnitId?: string | null;
+  targetPositionId?: string | null;
+  status: string;
+  state: string;
+  expiresAt: string;
+  createdAt: string;
+};
+
+type InvitationCreated = InvitationRow & { token: string };
 
 type CreateMemberForm = {
   fullName: string;
@@ -47,6 +63,7 @@ export default function MembersPage() {
   const [rows, setRows] = useState<MemberRow[]>([]);
   const [units, setUnits] = useState<OrganizationUnit[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [invitations, setInvitations] = useState<InvitationRow[]>([]);
   const [form, setForm] = useState<CreateMemberForm>(emptyForm);
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -54,19 +71,22 @@ export default function MembersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [membersResponse, unitsResponse, positionsResponse] = await Promise.all([
+      const [membersResponse, unitsResponse, positionsResponse, invitationsResponse] = await Promise.all([
         apiFetch<MemberRow[]>("/members?limit=100"),
         apiFetch<OrganizationUnit[]>("/organization/units"),
-        apiFetch<Position[]>("/organization/positions")
+        apiFetch<Position[]>("/organization/positions"),
+        apiFetch<InvitationRow[]>("/members/invitations")
       ]);
       setRows(membersResponse.data);
       setUnits(unitsResponse.data);
       setPositions(positionsResponse.data);
+      setInvitations(invitationsResponse.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể tải danh bạ thành viên.");
     } finally {
@@ -99,8 +119,9 @@ export default function MembersPage() {
     setSaving(true);
     setError("");
     setMessage("");
+    setInviteLink("");
     try {
-      await apiFetch("/members", {
+      const response = await apiFetch<InvitationCreated>("/members/invitations", {
         method: "POST",
         body: JSON.stringify({
           fullName: form.fullName,
@@ -112,15 +133,35 @@ export default function MembersPage() {
           positionId: form.positionId || undefined
         })
       });
+      const link = `${window.location.origin}/invite/${response.data.token}`;
+      setInviteLink(link);
       setForm(emptyForm);
       setShowCreate(false);
-      setMessage("Đã thêm thành viên vào tổ chức.");
+      setMessage("Đã tạo lời mời. Link chỉ hiển thị ở lần tạo này; hãy copy và gửi cho thành viên.");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tạo thành viên.");
+      setError(err instanceof Error ? err.message : "Không thể tạo lời mời thành viên.");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function revokeInvitation(id: string) {
+    setError("");
+    setMessage("");
+    try {
+      await apiFetch(`/members/invitations/${id}/revoke`, { method: "POST", body: JSON.stringify({}) });
+      setMessage("Đã thu hồi lời mời.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể thu hồi lời mời.");
+    }
+  }
+
+  async function copyInviteLink() {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    setMessage("Đã copy link lời mời.");
   }
 
   return (
@@ -132,17 +173,26 @@ export default function MembersPage() {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Thành viên</h1>
           <p className="mt-1 text-sm text-slate-500">Danh bạ thành viên cùng đơn vị, chức vụ và Role hiện hành.</p>
         </div>
-        <Button onClick={() => setShowCreate((current) => !current)}><Plus className="h-4 w-4" />Thêm thành viên</Button>
+        <Button onClick={() => setShowCreate((current) => !current)}><Plus className="h-4 w-4" />Mời thành viên</Button>
       </div>
 
       {error ? <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
       {message ? <p className="mb-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
+      {inviteLink ? (
+        <div className="mb-4 flex flex-col gap-3 rounded-md border border-blue-200 bg-blue-50 p-3 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Link lời mời một lần</div>
+            <div className="mt-1 break-all text-sm text-slate-800">{inviteLink}</div>
+          </div>
+          <Button type="button" variant="secondary" onClick={copyInviteLink}><Copy className="h-4 w-4" />Copy link</Button>
+        </div>
+      ) : null}
 
       {showCreate ? (
         <Card className="mb-5">
           <CardHeader>
-            <h2 className="font-semibold text-slate-950">Thêm thành viên</h2>
-            <p className="mt-1 text-sm text-slate-500">Có thể gán đơn vị và chức vụ ngay khi tạo hồ sơ tổ chức.</p>
+            <h2 className="font-semibold text-slate-950">Mời thành viên</h2>
+            <p className="mt-1 text-sm text-slate-500">Hệ thống tạo lời mời có hạn dùng. Thành viên tự đặt hoặc xác thực mật khẩu khi chấp nhận.</p>
           </CardHeader>
           <CardContent>
             <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={createMember}>
@@ -186,12 +236,42 @@ export default function MembersPage() {
               </label>
               <div className="flex items-end justify-end gap-2 xl:col-span-1">
                 <Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>Hủy</Button>
-                <Button type="submit" disabled={saving}>{saving ? "Đang tạo..." : "Tạo thành viên"}</Button>
+                <Button type="submit" disabled={saving}>{saving ? "Đang tạo..." : "Tạo lời mời"}</Button>
               </div>
             </form>
           </CardContent>
         </Card>
       ) : null}
+
+      <Card className="mb-5">
+        <CardHeader>
+          <h2 className="font-semibold text-slate-950">Lời mời thành viên</h2>
+          <p className="mt-1 text-sm text-slate-500">Theo dõi lời mời đang chờ, đã chấp nhận, hết hạn hoặc đã thu hồi.</p>
+        </CardHeader>
+        <CardContent className="overflow-x-auto p-0">
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr><th className="px-5 py-3">Người được mời</th><th className="px-5 py-3">Phân công dự kiến</th><th className="px-5 py-3">Hết hạn</th><th className="px-5 py-3">Trạng thái</th><th className="px-5 py-3" /></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {invitations.length === 0 ? <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-500">Chưa có lời mời.</td></tr> : null}
+              {invitations.map((invitation) => {
+                const unit = units.find((item) => item.id === invitation.targetUnitId);
+                const position = positions.find((item) => item.id === invitation.targetPositionId);
+                return (
+                  <tr key={invitation.id}>
+                    <td className="px-5 py-3"><div className="font-medium text-slate-950">{invitation.fullName}</div><div className="text-xs text-slate-500">{invitation.email}</div></td>
+                    <td className="px-5 py-3 text-slate-700">{[unit?.name, position?.name].filter(Boolean).join(" · ") || "—"}</td>
+                    <td className="px-5 py-3 text-slate-600">{new Date(invitation.expiresAt).toLocaleString("vi-VN")}</td>
+                    <td className="px-5 py-3"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{invitation.state}</span></td>
+                    <td className="px-5 py-3 text-right">{invitation.state === "PENDING" ? <Button className="min-h-9 px-3" type="button" variant="ghost" onClick={() => revokeInvitation(invitation.id)}><XCircle className="h-4 w-4" />Thu hồi</Button> : null}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

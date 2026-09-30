@@ -303,6 +303,47 @@ describeDb("Operations Hub baseline integration", () => {
       .expect(401);
   });
 
+  it("FR-MEM-003 activates invitations without a default password", async () => {
+    const admin = await createUser(prisma, "invite-admin@example.test");
+    const context = await createTenantContext(prisma, auth, admin, "invite-flow", [
+      PERMISSIONS.memberRead,
+      PERMISSIONS.memberManage,
+      PERMISSIONS.organizationRead,
+      PERMISSIONS.organizationManage
+    ]);
+    const unit = await prisma.organizationUnit.create({ data: { tenantId: context.tenant.id, code: "TECH", name: "Technology" } });
+    const position = await prisma.position.create({ data: { tenantId: context.tenant.id, unitId: unit.id, code: "TECH_HEAD", name: "Technology Head" } });
+
+    const invite = await request(app.getHttpServer())
+      .post("/members/invitations")
+      .set("authorization", `Bearer ${context.token}`)
+      .set("x-tenant-id", context.tenant.id)
+      .send({ email: "invited-member@example.test", fullName: "Invited Member", unitId: unit.id, positionId: position.id })
+      .expect(201);
+    const token = invite.body.token as string;
+    expect(await prisma.user.findUnique({ where: { email: "invited-member@example.test" } })).toBeNull();
+    const stored = await prisma.membershipInvitation.findUniqueOrThrow({ where: { id: invite.body.id } });
+    expect(stored.tokenHash).not.toBe(token);
+    expect(stored.tokenHash).toHaveLength(64);
+
+    const accepted = await request(app.getHttpServer())
+      .post(`/members/invitations/token/${token}/accept`)
+      .send({ password: "InvitePass123!" })
+      .expect(201);
+    const membership = await prisma.membership.findUniqueOrThrow({
+      where: { id: accepted.body.membershipId },
+      include: { membershipUnits: true, membershipPositions: true, statusHistory: true }
+    });
+    expect(membership.membershipUnits[0]?.unitId).toBe(unit.id);
+    expect(membership.membershipPositions[0]?.positionId).toBe(position.id);
+    expect(membership.statusHistory[0]?.toStatus).toBe(MembershipStatus.ACTIVE);
+
+    await request(app.getHttpServer())
+      .post(`/members/invitations/token/${token}/accept`)
+      .send({ password: "InvitePass123!" })
+      .expect(400);
+  });
+
   it("FR-ORG-002 enforces hierarchy integrity, deactivation history and audit", async () => {
     const user = await createUser(prisma, "org-admin@example.test");
     const tenantA = await createTenantContext(prisma, auth, user, "org-a", [
@@ -384,7 +425,12 @@ describeDb("Operations Hub baseline integration", () => {
       .set("x-tenant-id", tenantA.tenant.id)
       .send({ email: "history-member@example.test", fullName: "History Member", unitId: unitA1.id })
       .expect(201);
-    const membershipId = memberResponse.body.id as string;
+    const invitationToken = memberResponse.body.token as string;
+    const acceptResponse = await request(app.getHttpServer())
+      .post(`/members/invitations/token/${invitationToken}/accept`)
+      .send({ password: "HistoryInvitePass!" })
+      .expect(201);
+    const membershipId = acceptResponse.body.membershipId as string;
 
     await request(app.getHttpServer())
       .post(`/members/${membershipId}/units`)

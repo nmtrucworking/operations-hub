@@ -256,64 +256,146 @@ export function OrganizationRequestForm() {
   );
 }
 
-export function InviteActions({ tokenState }: { tokenState: string }) {
-  const [declined, setDeclined] = useState(false);
+type InvitationPreview = {
+  state: string;
+  email: string;
+  fullName: string;
+  title?: string | null;
+  expiresAt: string;
+  tenant: { id: string; name: string; slug: string; brandColor: string };
+  unit?: { id: string; name: string; code: string } | null;
+  position?: { id: string; name: string; code: string } | null;
+};
 
-  if (["expired", "invalid", "used", "revoked"].includes(tokenState)) {
-    const labels: Record<string, string> = {
-      expired: "Lời mời đã hết hạn.",
-      invalid: "Lời mời không hợp lệ.",
-      used: "Lời mời đã được sử dụng.",
-      revoked: "Lời mời đã bị thu hồi."
+export function InviteActions({ token }: { token: string }) {
+  const router = useRouter();
+  const [invitation, setInvitation] = useState<InvitationPreview | null>(null);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState<"accepted" | "declined" | "">("");
+
+  useEffect(() => {
+    let active = true;
+    apiFetch<InvitationPreview>(`/members/invitations/token/${encodeURIComponent(token)}`)
+      .then((response) => {
+        if (active) setInvitation(response.data);
+      })
+      .catch((err) => {
+        if (active) setError(err instanceof Error ? err.message : "Không thể đọc lời mời.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
     };
+  }, [token]);
+
+  async function accept(event: FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      await apiFetch(`/members/invitations/token/${encodeURIComponent(token)}/accept`, {
+        method: "POST",
+        body: JSON.stringify({ password })
+      });
+      setDone("accepted");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể chấp nhận lời mời.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function decline() {
+    setSubmitting(true);
+    setError("");
+    try {
+      await apiFetch(`/members/invitations/token/${encodeURIComponent(token)}/decline`, {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+      setDone("declined");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể từ chối lời mời.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-500">Đang kiểm tra lời mời...</div>;
+  }
+
+  if (error && !invitation) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
-        <h2 className="text-lg font-semibold">{labels[tokenState]}</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Token này không cấp quyền xem dữ liệu tenant nội bộ.</p>
+      <div className="rounded-lg border border-red-200 bg-red-50 p-5">
+        <h2 className="text-lg font-semibold text-red-900">Không thể mở lời mời</h2>
+        <p className="mt-2 text-sm text-red-700">{error}</p>
       </div>
     );
   }
 
-  if (declined) {
+  if (done === "accepted") {
+    return (
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
+        <h2 className="text-lg font-semibold text-emerald-900">Đã tham gia tổ chức</h2>
+        <p className="mt-2 text-sm text-emerald-800">Membership đã được kích hoạt. Bạn có thể đăng nhập và chọn tổ chức này.</p>
+        <Button className="mt-4" onClick={() => router.push("/auth/login")}>Đăng nhập</Button>
+      </div>
+    );
+  }
+
+  if (done === "declined") {
     return (
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
-        <h2 className="text-lg font-semibold">Bạn đã chọn từ chối lời mời.</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Khi backend invite được tích hợp, hành động này cần được xác nhận và ghi nhận an toàn.</p>
+        <h2 className="text-lg font-semibold text-slate-900">Đã từ chối lời mời</h2>
+        <p className="mt-2 text-sm text-slate-600">Lời mời này không thể được sử dụng để tham gia tổ chức.</p>
+      </div>
+    );
+  }
+
+  if (!invitation) return null;
+
+  if (invitation.state !== "PENDING") {
+    const labels: Record<string, string> = {
+      ACCEPTED: "Lời mời đã được sử dụng.",
+      DECLINED: "Lời mời đã bị từ chối.",
+      EXPIRED: "Lời mời đã hết hạn.",
+      REVOKED: "Lời mời đã bị thu hồi."
+    };
+    return (
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
+        <h2 className="text-lg font-semibold text-slate-900">{labels[invitation.state] ?? "Lời mời không còn hiệu lực."}</h2>
+        <p className="mt-2 text-sm text-slate-600">Liên hệ quản trị viên tổ chức nếu bạn cần một lời mời mới.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5">
+    <form className="grid gap-5 rounded-lg border border-slate-200 bg-white p-5" onSubmit={accept}>
       <div>
-        <h2 className="text-lg font-semibold">Lời mời tham gia tổ chức</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          Bạn được mời tham gia một tenant trong Operations Hub. Thông tin hiển thị ở đây chỉ là dữ liệu tối thiểu an toàn
-          cho màn hình public.
-        </p>
+        <h2 className="text-lg font-semibold text-slate-950">Lời mời tham gia {invitation.tenant.name}</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Lời mời dành cho <strong>{invitation.fullName}</strong> ({invitation.email}).</p>
       </div>
       <dl className="grid gap-3 text-sm">
-        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3">
-          <dt className="text-slate-500">Tổ chức</dt>
-          <dd className="font-medium text-slate-950">Được xác định bởi token hợp lệ</dd>
-        </div>
-        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3">
-          <dt className="text-slate-500">Vai trò dự kiến</dt>
-          <dd className="font-medium text-slate-950">Thành viên hoặc vai trò được mời</dd>
-        </div>
-        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3">
-          <dt className="text-slate-500">Dữ liệu nội bộ</dt>
-          <dd className="font-medium text-slate-950">Không hiển thị public</dd>
-        </div>
+        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3"><dt className="text-slate-500">Đơn vị</dt><dd className="font-medium text-slate-950">{invitation.unit?.name ?? "Chưa phân đơn vị"}</dd></div>
+        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3"><dt className="text-slate-500">Chức vụ</dt><dd className="font-medium text-slate-950">{invitation.position?.name ?? invitation.title ?? "Thành viên"}</dd></div>
+        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3"><dt className="text-slate-500">Hết hạn</dt><dd className="font-medium text-slate-950">{new Date(invitation.expiresAt).toLocaleString("vi-VN")}</dd></div>
       </dl>
+      <label className="grid gap-2 text-sm font-medium text-slate-950">
+        Mật khẩu tài khoản
+        <Input type="password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+        <span className="text-xs font-normal text-slate-500">Nếu email đã có tài khoản, nhập mật khẩu hiện tại để xác minh. Nếu chưa có tài khoản, mật khẩu này sẽ được dùng để tạo tài khoản mới.</span>
+      </label>
+      {error ? <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800" href="/auth/login">
-          Đăng nhập để chấp nhận
-        </Link>
-        <Button onClick={() => setDeclined(true)} type="button" variant="secondary">
-          Từ chối lời mời
-        </Button>
+        <Button disabled={submitting} type="submit">{submitting ? "Đang xử lý..." : "Chấp nhận lời mời"}</Button>
+        <Button disabled={submitting} onClick={decline} type="button" variant="secondary">Từ chối</Button>
       </div>
-    </div>
+    </form>
   );
 }

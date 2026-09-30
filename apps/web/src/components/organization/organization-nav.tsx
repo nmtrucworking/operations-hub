@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseBusiness, Building2, Users } from "lucide-react";
+import { BriefcaseBusiness, Building2, LayoutDashboard, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
+  { href: "/organization", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/organization/profile", label: "Hồ sơ", icon: Building2 },
   { href: "/organization/structure", label: "Cơ cấu", icon: Users },
   { href: "/organization/positions", label: "Chức vụ", icon: BriefcaseBusiness },
@@ -18,7 +19,9 @@ export function OrganizationNav() {
     <nav className="mb-5 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2" aria-label="Quản trị tổ chức">
       {items.map((item) => {
         const Icon = item.icon;
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`) || (item.href === "/members" && pathname.startsWith("/organization/members/"));
+        const active = item.href === "/organization"
+          ? pathname === "/organization"
+          : pathname === item.href || pathname.startsWith(`${item.href}/`) || (item.href === "/members" && pathname.startsWith("/organization/members/"));
         return (
           <Link
             key={item.href}

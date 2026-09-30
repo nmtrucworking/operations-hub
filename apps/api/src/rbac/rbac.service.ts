@@ -109,4 +109,29 @@ export class RbacService {
     });
     return assignment;
   }
+
+  async revokeRole(tenantId: string, actorId: string, membershipId: string, roleId: string, correlationId?: string) {
+    const assignment = await this.prisma.membershipRole.findUnique({
+      where: { membershipId_roleId: { membershipId, roleId } },
+      include: { membership: true, role: true }
+    });
+    if (!assignment || assignment.membership.tenantId !== tenantId || assignment.role.tenantId !== tenantId) {
+      throw new NotFoundException("Membership role assignment not found");
+    }
+    if (assignment.role.code === "OWNER" || assignment.role.name === "Owner") {
+      throw new BadRequestException("Use the tenant ownership API to revoke Owner");
+    }
+    await this.prisma.membershipRole.delete({ where: { membershipId_roleId: { membershipId, roleId } } });
+    await this.audit.write({
+      tenantId,
+      actorId,
+      action: AuditAction.Update,
+      entityType: "MembershipRole",
+      entityId: `${membershipId}:${roleId}`,
+      before: assignment,
+      after: null,
+      correlationId
+    });
+    return { membershipId, roleId, revoked: true };
+  }
 }

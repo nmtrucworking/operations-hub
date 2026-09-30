@@ -26,6 +26,7 @@ type PositionAssignment = {
   effectiveTo?: string | null;
   position: Position;
 };
+type RoleOption = { id: string; code?: string | null; name: string; isActive: boolean };
 type MemberDetail = {
   id: string;
   status: string;
@@ -39,9 +40,18 @@ type MemberDetail = {
   roles: {
     role: {
       id: string;
+      code?: string | null;
       name: string;
       permissions: { permission: { code: string } }[];
     };
+  }[];
+  statusHistory: {
+    id: string;
+    fromStatus?: string | null;
+    toStatus: string;
+    reason?: string | null;
+    changedAt: string;
+    changedByMembership?: { user: { fullName: string } } | null;
   }[];
 };
 
@@ -56,8 +66,11 @@ export default function OrganizationMemberDetailPage() {
   const [member, setMember] = useState<MemberDetail | null>(null);
   const [units, setUnits] = useState<OrganizationUnit[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [canManageRoles, setCanManageRoles] = useState(false);
   const [unitId, setUnitId] = useState("");
   const [positionId, setPositionId] = useState("");
+  const [roleId, setRoleId] = useState("");
   const [isPrimary, setIsPrimary] = useState(true);
   const [editing, setEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({ title: "", studentCode: "", phone: "", bio: "", status: "ACTIVE" });
@@ -79,6 +92,14 @@ export default function OrganizationMemberDetailPage() {
       setMember(detail);
       setUnits(unitsResponse.data);
       setPositions(positionsResponse.data);
+      try {
+        const rolesResponse = await apiFetch<RoleOption[]>("/roles");
+        setRoles(rolesResponse.data);
+        setCanManageRoles(true);
+      } catch {
+        setRoles([]);
+        setCanManageRoles(false);
+      }
       setProfileForm({
         title: detail.title ?? "",
         studentCode: detail.profile?.studentCode ?? "",
@@ -104,6 +125,8 @@ export default function OrganizationMemberDetailPage() {
     if (!position.unitId) return true;
     return activeUnits.some((assignment) => assignment.unitId === position.unitId);
   });
+  const assignedRoleIds = new Set(member?.roles.map((item) => item.role.id) ?? []);
+  const availableRoles = roles.filter((role) => role.isActive && role.code !== "OWNER" && role.name !== "Owner" && !assignedRoleIds.has(role.id));
 
   async function saveProfile(event: FormEvent) {
     event.preventDefault();
@@ -168,6 +191,39 @@ export default function OrganizationMemberDetailPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể bổ nhiệm chức vụ.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function assignRole(event: FormEvent) {
+    event.preventDefault();
+    if (!roleId) return;
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      await apiFetch(`/members/${memberId}/roles`, { method: "POST", body: JSON.stringify({ roleId }) });
+      setRoleId("");
+      setMessage("Đã gán Role hệ thống.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể gán Role.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function revokeRole(targetRoleId: string) {
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      await apiFetch(`/members/${memberId}/roles/${targetRoleId}/revoke`, { method: "POST", body: JSON.stringify({}) });
+      setMessage("Đã gỡ Role hệ thống.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể gỡ Role.");
     } finally {
       setSaving(false);
     }
@@ -294,17 +350,33 @@ export default function OrganizationMemberDetailPage() {
 
           <Card>
             <CardHeader><div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-700" /><h2 className="font-semibold text-slate-950">Role và quyền hệ thống</h2></div></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {member.roles.length === 0 ? <p className="text-sm text-slate-500">Chưa có Role.</p> : (
                 <div className="grid gap-3 lg:grid-cols-2">
-                  {member.roles.map(({ role }) => (
-                    <div key={role.id} className="rounded-lg border border-slate-200 p-4">
-                      <div className="font-medium text-slate-950">{role.name}</div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">{role.permissions.map(({ permission }) => <span key={permission.code} className="rounded bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600">{permission.code}</span>)}</div>
-                    </div>
-                  ))}
+                  {member.roles.map(({ role }) => {
+                    const isOwner = role.code === "OWNER" || role.name === "Owner";
+                    return (
+                      <div key={role.id} className="rounded-lg border border-slate-200 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="font-medium text-slate-950">{role.name}</div>
+                          {canManageRoles && !isOwner ? <Button className="min-h-8 px-2 text-xs" variant="ghost" disabled={saving} onClick={() => revokeRole(role.id)}>Gỡ Role</Button> : null}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">{role.permissions.map(({ permission }) => <span key={permission.code} className="rounded bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600">{permission.code}</span>)}</div>
+                        {isOwner ? <div className="mt-2 text-xs text-slate-500">Owner được quản lý qua Tenant Ownership để giữ invariant người sở hữu cuối cùng.</div> : null}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
+              {canManageRoles ? (
+                <form className="flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row" onSubmit={assignRole}>
+                  <select className="h-10 min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm" value={roleId} onChange={(event) => setRoleId(event.target.value)}>
+                    <option value="">Chọn Role để gán...</option>
+                    {availableRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+                  </select>
+                  <Button type="submit" disabled={saving || !roleId}>Gán Role</Button>
+                </form>
+              ) : <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">Bạn có thể xem Role hiện hành nhưng không có quyền đọc/quản trị danh mục Role.</p>}
             </CardContent>
           </Card>
 
@@ -313,7 +385,7 @@ export default function OrganizationMemberDetailPage() {
               <h2 className="font-semibold text-slate-950">Lịch sử cơ cấu</h2>
               <p className="mt-1 text-sm text-slate-500">Các lần chuyển đơn vị và bổ nhiệm được lưu theo khoảng hiệu lực, không overwrite bản ghi cũ.</p>
             </CardHeader>
-            <CardContent className="grid gap-5 lg:grid-cols-2">
+            <CardContent className="grid gap-5 lg:grid-cols-3">
               <div>
                 <h3 className="mb-3 text-sm font-semibold text-slate-800">Đơn vị</h3>
                 <div className="space-y-2">{member.membershipUnits.map((assignment) => <div key={`${assignment.unitId}-${assignment.effectiveFrom}`} className="rounded-lg border border-slate-200 p-3"><div className="font-medium text-slate-900">{assignment.unit.name}</div><div className="mt-1 text-xs text-slate-500">{dateLabel(assignment.effectiveFrom)} → {dateLabel(assignment.effectiveTo)}</div></div>)}</div>
@@ -321,6 +393,18 @@ export default function OrganizationMemberDetailPage() {
               <div>
                 <h3 className="mb-3 text-sm font-semibold text-slate-800">Chức vụ</h3>
                 <div className="space-y-2">{member.membershipPositions.map((assignment) => <div key={`${assignment.positionId}-${assignment.effectiveFrom}`} className="rounded-lg border border-slate-200 p-3"><div className="font-medium text-slate-900">{assignment.position.name}</div><div className="mt-1 text-xs text-slate-500">{assignment.position.unit?.name ?? "Toàn tổ chức"} · {dateLabel(assignment.effectiveFrom)} → {dateLabel(assignment.effectiveTo)}</div></div>)}</div>
+              </div>
+              <div>
+                <h3 className="mb-3 text-sm font-semibold text-slate-800">Trạng thái membership</h3>
+                <div className="space-y-2">
+                  {member.statusHistory.length === 0 ? <p className="text-sm text-slate-500">Chưa có thay đổi trạng thái.</p> : member.statusHistory.map((item) => (
+                    <div key={item.id} className="rounded-lg border border-slate-200 p-3">
+                      <div className="font-medium text-slate-900">{item.fromStatus ?? "Khởi tạo"} → {item.toStatus}</div>
+                      <div className="mt-1 text-xs text-slate-500">{dateLabel(item.changedAt)}{item.changedByMembership?.user.fullName ? ` · bởi ${item.changedByMembership.user.fullName}` : ""}</div>
+                      {item.reason ? <div className="mt-1 text-xs text-slate-500">{item.reason}</div> : null}
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>

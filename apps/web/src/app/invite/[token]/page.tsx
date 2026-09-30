@@ -9,15 +9,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-export default async function InvitePage({
-  params,
-  searchParams
-}: {
-  params: Promise<{ token: string }>;
-  searchParams: Promise<{ status?: string }>;
-}) {
-  await params;
-  const { status } = await searchParams;
+export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
   return (
     <PublicShell minimal>
       <TextPageHeader
@@ -27,7 +20,7 @@ export default async function InvitePage({
       />
       <Section>
         <div className="mx-auto max-w-2xl">
-          <InviteActions tokenState={status ?? "valid"} />
+          <InviteActions token={token} />
         </div>
       </Section>
     </PublicShell>

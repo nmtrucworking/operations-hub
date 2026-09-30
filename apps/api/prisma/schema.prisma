@@ -800,17 +800,26 @@ model MembershipInvitation {
   id                    String      @id @default(uuid())
   tenantId              String
   email                 String
-  tokenHash             String
+  fullName              String
+  title                 String?
+  studentCode           String?
+  phone                 String?
+  targetUnitId          String?
+  targetPositionId      String?
+  tokenHash             String      @unique
   status                String      @default("PENDING")
   invitedByMembershipId String?
   expiresAt             DateTime
   acceptedAt            DateTime?
+  declinedAt            DateTime?
+  revokedAt             DateTime?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
   tenant                Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   invitedByMembership   Membership? @relation("MembershipInvitationInviter", fields: [invitedByMembershipId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, status])
+  @@index([tenantId, email, status])
   @@index([email])
   @@index([invitedByMembershipId])
 }
