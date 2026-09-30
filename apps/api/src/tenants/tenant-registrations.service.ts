@@ -23,14 +23,20 @@ export class TenantRegistrationsService {
       throw new BadRequestException("Slug must contain at least two valid characters");
     }
 
-    const [tenantWithSlug, registrationWithSlug] = await Promise.all([
+    const [tenantWithSlug, activeRegistrationWithSlug] = await Promise.all([
       this.prisma.tenant.findUnique({ where: { slug: proposedSlug }, select: { id: true } }),
-      this.prisma.tenantRegistration.findUnique({ where: { proposedSlug }, select: { id: true, status: true } })
+      this.prisma.tenantRegistration.findFirst({
+        where: {
+          proposedSlug,
+          status: { in: [TenantRegistrationStatus.DRAFT, TenantRegistrationStatus.SUBMITTED, TenantRegistrationStatus.IN_REVIEW] }
+        },
+        select: { id: true, status: true }
+      })
     ]);
 
     if (tenantWithSlug) throw new ConflictException("Slug is already used by an existing tenant");
-    if (registrationWithSlug) {
-      throw new ConflictException(`Slug is already reserved by a ${registrationWithSlug.status.toLowerCase()} registration`);
+    if (activeRegistrationWithSlug) {
+      throw new ConflictException(`Slug is already reserved by a ${activeRegistrationWithSlug.status.toLowerCase()} registration`);
     }
 
     const registration = await this.prisma.tenantRegistration.create({

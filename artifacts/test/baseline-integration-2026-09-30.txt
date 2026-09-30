@@ -1,0 +1,26 @@
+$ pnpm --filter @operations-hub/shared build && nest build && vitest run
+$ tsc -p tsconfig.json
+
+ RUN  v3.2.6 /Users/nguyenminhtruc-mac/Developer/Projects/active/operations-hub/apps/api
+
+ ✓ test/rbac.spec.ts (1 test) 2ms
+ ✓ test/module-guard.spec.ts (1 test) 2ms
+ ✓ test/auth.spec.ts (1 test) 690ms
+   ✓ PasswordService > hashes passwords without preserving plain text  690ms
+ ✓ test/baseline.e2e.spec.ts (10 tests) 3918ms
+   ✓ Operations Hub baseline integration > TC-TEN-TX-01 provisions Tenant + Membership + Owner atomically and prevents duplicate approval  421ms
+   ✓ Operations Hub baseline integration > platform reviewer can request changes/reject with audit but cannot approve  312ms
+   ✓ Operations Hub baseline integration > TC-TEN-TX-01 rolls provisioning back at every required fault checkpoint  331ms
+   ✓ Operations Hub baseline integration > TC-TEN-ISO-01 scopes list/update operations and rejects x-tenant-id token tampering  337ms
+   ✓ Operations Hub baseline integration > FR-MEM-002 resolves permissions per membership and global disable blocks every tenant  670ms
+   ✓ Operations Hub baseline integration > FR-ORG-002 enforces hierarchy integrity, deactivation history and audit  349ms
+   ✓ Operations Hub baseline integration > FR-MOD-001 isolates module toggles and disabled module endpoints at backend  319ms
+   ✓ Operations Hub baseline integration > UC-TENANT-05 validates lifecycle transitions, owner invariant and platform authorization  350ms
+   ✓ Operations Hub baseline integration > UC-TENANT-06 keeps OwnershipAssignment as SSOT and protects the last owner  379ms
+   ✓ Operations Hub baseline integration > branding SSOT and custom-domain mutations are tenant scoped and audited  338ms
+
+ Test Files  4 passed (4)
+      Tests  13 passed (13)
+   Start at  21:45:08
+   Duration  4.57s (transform 55ms, setup 0ms, collect 829ms, tests 4.61s, environment 0ms, prepare 157ms)
+

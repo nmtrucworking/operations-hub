@@ -116,12 +116,24 @@ async function createTenant(input: {
       name: input.name,
       slug: input.slug,
       brandColor: input.brandColor,
+      organizationProfile: { create: { displayName: input.name } },
+      tenantBranding: {
+        create: {
+          displayName: input.name,
+          primaryColor: input.brandColor,
+          status: "ACTIVE"
+        }
+      },
+      retentionPolicy: { create: {} },
       modules: {
         create: MODULES.map((module) => ({ key: module.key, isEnabled: true }))
       }
     }
   });
   const unit = await prisma.unit.create({ data: { tenantId: tenant.id, name: "Executive Board" } });
+  await prisma.organizationUnit.create({
+    data: { tenantId: tenant.id, code: "EXEC", name: "Executive Board", sortOrder: 0 }
+  });
   const account = await prisma.financeAccount.create({
     data: { tenantId: tenant.id, name: "Main Fund", currency: "VND", balance: 10000000 }
   });
@@ -138,12 +150,14 @@ async function createTenant(input: {
     })
   ]);
 
-  const ownerRole = await createRoleWithPermissions(tenant.id, "Owner", Object.values(PERMISSIONS), input.permissionByCode);
+  const ownerRole = await createRoleWithPermissions(tenant.id, "Owner", Object.values(PERMISSIONS), input.permissionByCode, "OWNER");
   const financeRole = await createRoleWithPermissions(
     tenant.id,
     "Finance Officer",
     [
       PERMISSIONS.tenantRead,
+      PERMISSIONS.moduleRead,
+      PERMISSIONS.organizationRead,
       PERMISSIONS.memberRead,
       PERMISSIONS.requestRead,
       PERMISSIONS.financeRead,
@@ -158,6 +172,8 @@ async function createTenant(input: {
     "Member",
     [
       PERMISSIONS.tenantRead,
+      PERMISSIONS.moduleRead,
+      PERMISSIONS.organizationRead,
       PERMISSIONS.memberRead,
       PERMISSIONS.requestRead,
       PERMISSIONS.requestManage,
@@ -167,6 +183,7 @@ async function createTenant(input: {
   );
 
   const ownerMembership = await createMembership(owner.id, tenant.id, unit.id, "Owner", ownerRole.id);
+  await prisma.ownershipAssignment.create({ data: { tenantId: tenant.id, membershipId: ownerMembership.id } });
   await createMembership(finance.id, tenant.id, unit.id, "Finance Officer", financeRole.id);
   await createMembership(member.id, tenant.id, unit.id, "Member", memberRole.id);
 
@@ -189,11 +206,13 @@ async function createRoleWithPermissions(
   tenantId: string,
   name: string,
   permissions: string[],
-  permissionByCode: Map<string, { id: string; code: string }>
+  permissionByCode: Map<string, { id: string; code: string }>,
+  code?: string
 ) {
   return prisma.role.create({
     data: {
       tenantId,
+      code,
       name,
       isSystem: true,
       permissions: {

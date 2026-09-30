@@ -9,7 +9,6 @@ import {
   Building2,
   CheckCircle2,
   Crown,
-  Database,
   Globe2,
   LifeBuoy,
   LoaderCircle,
@@ -32,6 +31,12 @@ type CurrentTenant = {
   brandColor: string;
   createdAt: string;
   updatedAt: string;
+  tenantBranding?: {
+    id: string;
+    displayName: string;
+    primaryColor?: string | null;
+    secondaryColor?: string | null;
+  } | null;
   modules?: Array<{
     id: string;
     key: string;
@@ -46,6 +51,94 @@ type TenantModule = {
   name: string;
   requiredPermissions: string[];
   isEnabled: boolean;
+};
+
+type TenantOwner = {
+  id: string;
+  membershipId: string;
+  effectiveFrom: string;
+  title?: string | null;
+  user: { id: string; email: string; fullName: string };
+};
+
+type TenantMember = {
+  id: string;
+  status: string;
+  user: { id: string; email: string; fullName: string; isActive: boolean };
+};
+
+type CustomDomain = {
+  id: string;
+  hostname: string;
+  verificationStatus: string;
+  verifiedAt?: string | null;
+  createdAt: string;
+  verificationChallenges?: Array<{
+    id: string;
+    recordName: string;
+    expectedValue: string;
+    status: string;
+    expiresAt: string;
+    verifiedAt?: string | null;
+  }>;
+};
+
+type ServiceOverview = {
+  subscription: {
+    id: string;
+    status: string;
+    serviceContactEmail?: string | null;
+    billingContactEmail?: string | null;
+    plan: {
+      id: string;
+      code: string;
+      name: string;
+      limits: Array<{ id: string; metricKey: string; maxValue: number; unit: string }>;
+    };
+  } | null;
+  usage: Array<{ id: string; metricKey: string; periodKey: string; usedValue: number; measuredAt: string }>;
+};
+
+type RetentionPolicy = {
+  id: string;
+  gracePeriodDays: number;
+  retentionDays: number;
+  disposition: string;
+  exportBeforeDisposition: boolean;
+};
+
+type ClosureRequest = {
+  id: string;
+  status: string;
+  reason: string;
+  requestedAt: string;
+  scheduledFor: string;
+  cancelledAt?: string | null;
+};
+
+type DataExportRequest = {
+  id: string;
+  closureRequestId?: string | null;
+  status: string;
+  format: string;
+  requestedAt: string;
+};
+
+type SupportRequest = {
+  id: string;
+  reason: string;
+  requestedScopes: string[];
+  requestedDurationMinutes: number;
+  status: string;
+  createdAt: string;
+  grant?: {
+    id: string;
+    platformUserId: string;
+    scopes: string[];
+    startsAt: string;
+    expiresAt: string;
+    revokedAt?: string | null;
+  } | null;
 };
 
 type SectionKey = "overview" | "modules" | "ownership" | "service" | "domains" | "lifecycle" | "support";
@@ -75,15 +168,15 @@ const capabilities: Array<{
   surface: string;
 }> = [
   { id: "UC-TENANT-01", title: "Đăng ký tổ chức", owner: "Người đăng ký tổ chức", state: "partial", surface: "/organizations/new" },
-  { id: "UC-TENANT-02", title: "Xử lý hồ sơ đăng ký", owner: "Platform Admin", state: "contract", surface: "/platform/tenants" },
-  { id: "UC-TENANT-03", title: "Khởi tạo tenant", owner: "Platform Admin", state: "contract", surface: "/platform/tenants" },
-  { id: "UC-TENANT-04", title: "Quản trị danh mục tenant", owner: "Platform Admin", state: "contract", surface: "/platform/tenants" },
-  { id: "UC-TENANT-05", title: "Quản lý vòng đời tenant", owner: "Platform Admin", state: "contract", surface: "/platform/tenants" },
-  { id: "UC-TENANT-06", title: "Quản lý quyền sở hữu", owner: "Tenant Owner", state: "contract", surface: "/tenant" },
-  { id: "UC-TENANT-07", title: "Dịch vụ và hạn mức", owner: "Owner / Platform Admin", state: "contract", surface: "/tenant" },
-  { id: "UC-TENANT-08", title: "Tên miền tenant", owner: "Tenant Owner", state: "contract", surface: "/tenant" },
-  { id: "UC-TENANT-09", title: "Đóng và xử lý dữ liệu", owner: "Owner / Platform Admin", state: "contract", surface: "/tenant" },
-  { id: "UC-TENANT-10", title: "Hỗ trợ quản trị có kiểm soát", owner: "Owner / Platform Admin", state: "contract", surface: "/tenant" }
+  { id: "UC-TENANT-02", title: "Xử lý hồ sơ đăng ký", owner: "Platform Admin", state: "live", surface: "/platform/tenants" },
+  { id: "UC-TENANT-03", title: "Khởi tạo tenant", owner: "Platform Admin", state: "live", surface: "/platform/tenants" },
+  { id: "UC-TENANT-04", title: "Quản trị danh mục tenant", owner: "Platform Admin", state: "partial", surface: "/platform/tenants" },
+  { id: "UC-TENANT-05", title: "Quản lý vòng đời tenant", owner: "Platform Admin", state: "live", surface: "/platform/tenants" },
+  { id: "UC-TENANT-06", title: "Quản lý quyền sở hữu", owner: "Tenant Owner", state: "live", surface: "/tenant" },
+  { id: "UC-TENANT-07", title: "Dịch vụ và hạn mức", owner: "Owner / Platform Admin", state: "live", surface: "/tenant" },
+  { id: "UC-TENANT-08", title: "Tên miền tenant", owner: "Tenant Owner", state: "live", surface: "/tenant" },
+  { id: "UC-TENANT-09", title: "Đóng và xử lý dữ liệu", owner: "Owner / Platform Admin", state: "live", surface: "/tenant" },
+  { id: "UC-TENANT-10", title: "Hỗ trợ quản trị có kiểm soát", owner: "Owner / Platform Admin", state: "live", surface: "/tenant" }
 ];
 
 const statusMeta: Record<string, { label: string; className: string; description: string }> = {
@@ -150,31 +243,6 @@ function ContractNotice({ title, children }: { title: string; children: React.Re
   );
 }
 
-function EmptyIntegration({
-  title,
-  description,
-  endpoint
-}: {
-  title: string;
-  description: string;
-  endpoint: string;
-}) {
-  return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
-      <div className="flex items-start gap-3">
-        <Database className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
-        <div>
-          <h3 className="font-semibold text-slate-950">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
-          <p className="mt-3 text-xs text-slate-500">
-            API contract cần tích hợp: <code className="rounded bg-white px-1.5 py-1 font-mono text-slate-700">{endpoint}</code>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function TenantCenter() {
   const [section, setSection] = useState<SectionKey>("overview");
   const [tenant, setTenant] = useState<CurrentTenant | null>(null);
@@ -183,6 +251,29 @@ export function TenantCenter() {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [savingModule, setSavingModule] = useState("");
+  const [owners, setOwners] = useState<TenantOwner[]>([]);
+  const [members, setMembers] = useState<TenantMember[]>([]);
+  const [ownerTargetId, setOwnerTargetId] = useState("");
+  const [ownershipBusy, setOwnershipBusy] = useState(false);
+  const [domains, setDomains] = useState<CustomDomain[]>([]);
+  const [domainInput, setDomainInput] = useState("");
+  const [domainBusy, setDomainBusy] = useState(false);
+  const [brandingColor, setBrandingColor] = useState("#2563eb");
+  const [brandingBusy, setBrandingBusy] = useState(false);
+  const [serviceOverview, setServiceOverview] = useState<ServiceOverview | null>(null);
+  const [serviceContactEmail, setServiceContactEmail] = useState("");
+  const [billingContactEmail, setBillingContactEmail] = useState("");
+  const [serviceBusy, setServiceBusy] = useState(false);
+  const [retentionPolicy, setRetentionPolicy] = useState<RetentionPolicy | null>(null);
+  const [closureRequests, setClosureRequests] = useState<ClosureRequest[]>([]);
+  const [dataExports, setDataExports] = useState<DataExportRequest[]>([]);
+  const [closureReason, setClosureReason] = useState("");
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [supportRequests, setSupportRequests] = useState<SupportRequest[]>([]);
+  const [supportReason, setSupportReason] = useState("");
+  const [supportScope, setSupportScope] = useState("member:read");
+  const [supportDuration, setSupportDuration] = useState("60");
+  const [supportBusy, setSupportBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -194,6 +285,7 @@ export function TenantCenter() {
       ]);
       setTenant(tenantResponse.data);
       setModules(modulesResponse.data);
+      setBrandingColor(tenantResponse.data.tenantBranding?.primaryColor || tenantResponse.data.brandColor || "#2563eb");
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Không thể tải ngữ cảnh tenant.");
     } finally {
@@ -204,6 +296,14 @@ export function TenantCenter() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (section === "ownership") void loadOwnership();
+    if (section === "domains") void loadDomains();
+    if (section === "service") void loadService();
+    if (section === "lifecycle") void loadLifecycleData();
+    if (section === "support") void loadSupportRequests();
+  }, [section]);
 
   const enabledModules = useMemo(() => modules.filter((module) => module.isEnabled).length, [modules]);
 
@@ -222,6 +322,281 @@ export function TenantCenter() {
       setActionError(toggleError instanceof Error ? toggleError.message : "Không thể thay đổi trạng thái mô-đun.");
     } finally {
       setSavingModule("");
+    }
+  }
+
+  async function loadOwnership() {
+    setActionError("");
+    try {
+      const [ownerResponse, memberResponse] = await Promise.all([
+        apiFetch<TenantOwner[]>("/tenants/current/owners"),
+        apiFetch<TenantMember[]>("/members?limit=100")
+      ]);
+      setOwners(ownerResponse.data);
+      setMembers(memberResponse.data);
+      setOwnerTargetId((current) => current || memberResponse.data.find((member) => member.status === "ACTIVE")?.id || "");
+    } catch (loadError) {
+      setActionError(loadError instanceof Error ? loadError.message : "Không thể tải ownership.");
+    }
+  }
+
+  async function addOwner() {
+    if (!ownerTargetId) return;
+    setOwnershipBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/owners", {
+        method: "POST",
+        body: JSON.stringify({ membershipId: ownerTargetId })
+      });
+      await loadOwnership();
+    } catch (ownerError) {
+      setActionError(ownerError instanceof Error ? ownerError.message : "Không thể bổ nhiệm Owner.");
+    } finally {
+      setOwnershipBusy(false);
+    }
+  }
+
+  async function transferOwnership() {
+    if (!ownerTargetId || !window.confirm("Chuyển quyền Owner hiện tại sang thành viên đã chọn?")) return;
+    setOwnershipBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/ownership/transfer", {
+        method: "POST",
+        body: JSON.stringify({ toMembershipId: ownerTargetId })
+      });
+      await loadOwnership();
+    } catch (ownerError) {
+      setActionError(ownerError instanceof Error ? ownerError.message : "Không thể chuyển quyền sở hữu.");
+    } finally {
+      setOwnershipBusy(false);
+    }
+  }
+
+  async function revokeOwner(membershipId: string) {
+    if (!window.confirm("Thu hồi quyền Owner của membership này?")) return;
+    setOwnershipBusy(true);
+    setActionError("");
+    try {
+      await apiFetch(`/tenants/current/owners/${membershipId}`, { method: "DELETE" });
+      await loadOwnership();
+    } catch (ownerError) {
+      setActionError(ownerError instanceof Error ? ownerError.message : "Không thể thu hồi Owner.");
+    } finally {
+      setOwnershipBusy(false);
+    }
+  }
+
+  async function saveBranding() {
+    setBrandingBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/branding", {
+        method: "PATCH",
+        body: JSON.stringify({ primaryColor: brandingColor })
+      });
+      await load();
+    } catch (brandingError) {
+      setActionError(brandingError instanceof Error ? brandingError.message : "Không thể cập nhật branding.");
+    } finally {
+      setBrandingBusy(false);
+    }
+  }
+
+  async function loadDomains() {
+    setActionError("");
+    try {
+      const response = await apiFetch<CustomDomain[]>("/tenants/current/domains");
+      setDomains(response.data);
+    } catch (domainError) {
+      setActionError(domainError instanceof Error ? domainError.message : "Không thể tải custom domain.");
+    }
+  }
+
+  async function addDomain() {
+    if (!domainInput.trim()) return;
+    setDomainBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/domains", {
+        method: "POST",
+        body: JSON.stringify({ hostname: domainInput.trim() })
+      });
+      setDomainInput("");
+      await loadDomains();
+    } catch (domainError) {
+      setActionError(domainError instanceof Error ? domainError.message : "Không thể thêm custom domain.");
+    } finally {
+      setDomainBusy(false);
+    }
+  }
+
+  async function revokeDomain(id: string) {
+    if (!window.confirm("Gỡ custom domain này khỏi tenant?")) return;
+    setDomainBusy(true);
+    setActionError("");
+    try {
+      await apiFetch(`/tenants/current/domains/${id}`, { method: "DELETE" });
+      await loadDomains();
+    } catch (domainError) {
+      setActionError(domainError instanceof Error ? domainError.message : "Không thể gỡ custom domain.");
+    } finally {
+      setDomainBusy(false);
+    }
+  }
+
+  async function issueDomainChallenge(id: string) {
+    setDomainBusy(true);
+    setActionError("");
+    try {
+      await apiFetch(`/tenants/current/domains/${id}/challenge`, { method: "POST" });
+      await loadDomains();
+    } catch (domainError) {
+      setActionError(domainError instanceof Error ? domainError.message : "Không thể phát hành DNS challenge.");
+    } finally {
+      setDomainBusy(false);
+    }
+  }
+
+  async function verifyDomain(id: string) {
+    setDomainBusy(true);
+    setActionError("");
+    try {
+      const response = await apiFetch<{ verified: boolean }>(`/tenants/current/domains/${id}/verify`, { method: "POST" });
+      if (!response.data.verified) setActionError("Chưa tìm thấy TXT record đúng. DNS có thể chưa propagate.");
+      await loadDomains();
+    } catch (domainError) {
+      setActionError(domainError instanceof Error ? domainError.message : "Không thể xác minh DNS.");
+    } finally {
+      setDomainBusy(false);
+    }
+  }
+
+  async function loadService() {
+    setActionError("");
+    try {
+      const response = await apiFetch<ServiceOverview>("/tenants/current/service");
+      setServiceOverview(response.data);
+      setServiceContactEmail(response.data.subscription?.serviceContactEmail || "");
+      setBillingContactEmail(response.data.subscription?.billingContactEmail || "");
+    } catch (serviceError) {
+      setActionError(serviceError instanceof Error ? serviceError.message : "Không thể tải service profile.");
+    }
+  }
+
+  async function saveServiceContacts() {
+    setServiceBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/service/contacts", {
+        method: "PATCH",
+        body: JSON.stringify({
+          serviceContactEmail: serviceContactEmail || undefined,
+          billingContactEmail: billingContactEmail || undefined
+        })
+      });
+      await loadService();
+    } catch (serviceError) {
+      setActionError(serviceError instanceof Error ? serviceError.message : "Không thể cập nhật liên hệ dịch vụ.");
+    } finally {
+      setServiceBusy(false);
+    }
+  }
+
+  async function loadLifecycleData() {
+    setActionError("");
+    try {
+      const [policyResponse, closureResponse, exportResponse] = await Promise.all([
+        apiFetch<RetentionPolicy>("/tenants/current/retention"),
+        apiFetch<ClosureRequest[]>("/tenants/current/closure-requests"),
+        apiFetch<DataExportRequest[]>("/tenants/current/data-exports")
+      ]);
+      setRetentionPolicy(policyResponse.data);
+      setClosureRequests(closureResponse.data);
+      setDataExports(exportResponse.data);
+    } catch (lifecycleError) {
+      setActionError(lifecycleError instanceof Error ? lifecycleError.message : "Không thể tải dữ liệu close/retention.");
+    }
+  }
+
+  async function requestClosure() {
+    if (!closureReason.trim() || !window.confirm("Tạo yêu cầu đóng tenant với grace period theo retention policy hiện tại?")) return;
+    setLifecycleBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/closure-requests", {
+        method: "POST",
+        body: JSON.stringify({ reason: closureReason.trim() })
+      });
+      setClosureReason("");
+      await loadLifecycleData();
+    } catch (lifecycleError) {
+      setActionError(lifecycleError instanceof Error ? lifecycleError.message : "Không thể tạo yêu cầu đóng tenant.");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
+  async function cancelClosure(id: string) {
+    if (!window.confirm("Hủy yêu cầu đóng tenant này trong grace period?")) return;
+    setLifecycleBusy(true);
+    setActionError("");
+    try {
+      await apiFetch(`/tenants/current/closure-requests/${id}/cancel`, { method: "POST" });
+      await loadLifecycleData();
+    } catch (lifecycleError) {
+      setActionError(lifecycleError instanceof Error ? lifecycleError.message : "Không thể hủy yêu cầu đóng tenant.");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
+  async function requestDataExport(closureRequestId?: string) {
+    setLifecycleBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/data-exports", {
+        method: "POST",
+        body: JSON.stringify({ format: "JSON", closureRequestId })
+      });
+      await loadLifecycleData();
+    } catch (lifecycleError) {
+      setActionError(lifecycleError instanceof Error ? lifecycleError.message : "Không thể tạo yêu cầu export dữ liệu.");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
+  async function loadSupportRequests() {
+    setActionError("");
+    try {
+      const response = await apiFetch<SupportRequest[]>("/tenants/current/support-requests");
+      setSupportRequests(response.data);
+    } catch (supportError) {
+      setActionError(supportError instanceof Error ? supportError.message : "Không thể tải support requests.");
+    }
+  }
+
+  async function createSupportRequest() {
+    if (!supportReason.trim()) return;
+    setSupportBusy(true);
+    setActionError("");
+    try {
+      await apiFetch("/tenants/current/support-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          reason: supportReason.trim(),
+          scopes: [supportScope],
+          durationMinutes: Number(supportDuration)
+        })
+      });
+      setSupportReason("");
+      await loadSupportRequests();
+    } catch (supportError) {
+      setActionError(supportError instanceof Error ? supportError.message : "Không thể tạo support request.");
+    } finally {
+      setSupportBusy(false);
     }
   }
 
@@ -346,9 +721,12 @@ export function TenantCenter() {
                   <CardContent>
                     <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Brand color</div>
                     <div className="mt-3 flex items-center gap-3">
-                      <span className="h-8 w-8 rounded-lg border border-slate-200" style={{ backgroundColor: tenant.brandColor }} aria-hidden="true" />
-                      <span className="font-mono text-sm font-semibold">{tenant.brandColor}</span>
+                      <input aria-label="Brand color" type="color" value={brandingColor} onChange={(event) => setBrandingColor(event.target.value)} className="h-9 w-12 rounded border border-slate-200 bg-white p-1" />
+                      <span className="font-mono text-sm font-semibold">{brandingColor}</span>
                     </div>
+                    <Button className="mt-3 min-h-9 px-3" variant="secondary" disabled={brandingBusy || brandingColor === tenant.brandColor} onClick={() => void saveBranding()}>
+                      {brandingBusy ? "Đang lưu..." : "Lưu branding"}
+                    </Button>
                   </CardContent>
                 </Card>
                 <Card>
@@ -462,20 +840,37 @@ export function TenantCenter() {
               <ContractNotice title="Bất biến Owner">
                 Tenant đang hoạt động phải luôn có ít nhất một membership Active giữ quyền Owner. Owner cuối cùng không được tự rời, bị hạ quyền, đình chỉ hoặc kết thúc membership trước khi có Owner thay thế.
               </ContractNotice>
-              <EmptyIntegration
-                title="Danh sách Owner chưa có endpoint đọc chuyên biệt"
-                description="Không suy đoán Owner từ tên role hoặc user hiện tại. UI cần dữ liệu ownership assignment được backend kiểm tra cùng tenant và trạng thái membership."
-                endpoint="GET /tenants/current/owners"
-              />
-              <div className="grid gap-4 md:grid-cols-3">
-                {["Bổ nhiệm thêm Owner", "Chuyển quyền sở hữu", "Thu hồi Owner"].map((label) => (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4" key={label}>
-                    <Crown className="h-5 w-5 text-slate-500" aria-hidden="true" />
-                    <h3 className="mt-3 font-semibold text-slate-950">{label}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">Mutation phải kiểm tra phạm vi ủy quyền, membership Active, last-owner invariant và ghi audit.</p>
-                    <Button className="mt-4" disabled type="button" variant="secondary">Chờ API quyền sở hữu</Button>
-                  </div>
-                ))}
+              {actionError ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{actionError}</div> : null}
+              <Card>
+                <CardHeader><h3 className="font-semibold text-slate-950">Owner hiện hành</h3></CardHeader>
+                <CardContent className="space-y-3">
+                  {owners.map((owner) => (
+                    <div key={owner.id} className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="font-medium text-slate-950">{owner.user.fullName}</div>
+                        <div className="text-xs text-slate-500">{owner.user.email} · từ {new Date(owner.effectiveFrom).toLocaleString("vi-VN")}</div>
+                      </div>
+                      <Button variant="secondary" disabled={ownershipBusy || owners.length <= 1} onClick={() => void revokeOwner(owner.membershipId)}>Thu hồi Owner</Button>
+                    </div>
+                  ))}
+                  {owners.length === 0 ? <p className="text-sm text-slate-500">Không có Owner active được trả về.</p> : null}
+                </CardContent>
+              </Card>
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <label className="grid gap-2 text-sm font-medium text-slate-800">
+                  Membership đích
+                  <select value={ownerTargetId} onChange={(event) => setOwnerTargetId(event.target.value)} className="h-11 rounded-md border border-slate-300 bg-white px-3 text-slate-700">
+                    <option value="">Chọn thành viên...</option>
+                    {members.filter((member) => member.status === "ACTIVE" && member.user.isActive).map((member) => (
+                      <option key={member.id} value={member.id}>{member.user.fullName} — {member.user.email}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button disabled={ownershipBusy || !ownerTargetId} onClick={() => void addOwner()}>Bổ nhiệm thêm Owner</Button>
+                  <Button variant="secondary" disabled={ownershipBusy || !ownerTargetId} onClick={() => void transferOwnership()}>Chuyển quyền của tôi</Button>
+                  <Button variant="secondary" disabled={ownershipBusy} onClick={() => void loadOwnership()}>Làm mới</Button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -486,16 +881,42 @@ export function TenantCenter() {
                 <h2 className="text-xl font-semibold text-slate-950">Dịch vụ và hạn mức tenant</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-600">Tách cấu hình dịch vụ khỏi quyền nghiệp vụ. Gói sử dụng không được tự động biến thành role hoặc permission.</p>
               </div>
+              {actionError ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</div> : null}
               <div className="grid gap-4 md:grid-cols-3">
-                <Card><CardContent><div className="text-xs uppercase tracking-wide text-slate-500">Gói dịch vụ</div><div className="mt-2 text-lg font-semibold">Chưa có dữ liệu</div><p className="mt-1 text-xs text-slate-500">Không hiển thị tên gói giả.</p></CardContent></Card>
-                <Card><CardContent><div className="text-xs uppercase tracking-wide text-slate-500">Hạn mức</div><div className="mt-2 text-lg font-semibold">Chưa có dữ liệu</div><p className="mt-1 text-xs text-slate-500">Cần contract usage/limits.</p></CardContent></Card>
-                <Card><CardContent><div className="text-xs uppercase tracking-wide text-slate-500">Liên hệ dịch vụ</div><div className="mt-2 text-lg font-semibold">Chưa cấu hình</div><p className="mt-1 text-xs text-slate-500">Không suy ra từ email đăng nhập.</p></CardContent></Card>
+                <Card><CardContent><div className="text-xs uppercase tracking-wide text-slate-500">Gói dịch vụ</div><div className="mt-2 text-lg font-semibold">{serviceOverview?.subscription?.plan.name || "Chưa được gán"}</div><p className="mt-1 text-xs text-slate-500">{serviceOverview?.subscription ? `${serviceOverview.subscription.plan.code} · ${serviceOverview.subscription.status}` : "Platform Admin cần gán plan trước."}</p></CardContent></Card>
+                <Card><CardContent><div className="text-xs uppercase tracking-wide text-slate-500">Hạn mức</div><div className="mt-2 text-lg font-semibold">{serviceOverview?.subscription?.plan.limits.length ?? 0}</div><p className="mt-1 text-xs text-slate-500">Metric limits từ service plan hiện hành.</p></CardContent></Card>
+                <Card><CardContent><div className="text-xs uppercase tracking-wide text-slate-500">Usage counters</div><div className="mt-2 text-lg font-semibold">{serviceOverview?.usage.length ?? 0}</div><p className="mt-1 text-xs text-slate-500">Tách khỏi role/permission và cập nhật bởi platform/system.</p></CardContent></Card>
               </div>
-              <EmptyIntegration
-                title="Service profile cần nguồn dữ liệu riêng"
-                description="UI đã dành vùng cho plan, trạng thái dịch vụ, usage, limits và billing/service contact nhưng repo hiện chưa công bố API tương ứng."
-                endpoint="GET /tenants/current/service"
-              />
+              {serviceOverview?.subscription ? (
+                <Card>
+                  <CardHeader><h3 className="font-semibold text-slate-950">Limits và usage</h3></CardHeader>
+                  <CardContent className="space-y-3">
+                    {serviceOverview.subscription.plan.limits.map((limit) => {
+                      const usage = serviceOverview.usage.find((item) => item.metricKey === limit.metricKey);
+                      return (
+                        <div key={limit.id} className="grid gap-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                          <div><div className="font-mono text-sm font-semibold text-slate-900">{limit.metricKey}</div><div className="text-xs text-slate-500">Period: {usage?.periodKey || "chưa đo"}</div></div>
+                          <div className="text-sm font-semibold text-slate-800">{usage?.usedValue ?? 0} / {limit.maxValue} {limit.unit}</div>
+                        </div>
+                      );
+                    })}
+                    {serviceOverview.subscription.plan.limits.length === 0 ? <p className="text-sm text-slate-500">Plan hiện tại chưa cấu hình limit.</p> : null}
+                  </CardContent>
+                </Card>
+              ) : null}
+              <Card>
+                <CardHeader><h3 className="font-semibold text-slate-950">Liên hệ dịch vụ và billing</h3></CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="grid gap-2 text-sm font-medium text-slate-800">Service contact<input className="h-11 rounded-md border border-slate-300 px-3 text-sm" type="email" value={serviceContactEmail} onChange={(event) => setServiceContactEmail(event.target.value)} placeholder="ops@example.org" /></label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-800">Billing contact<input className="h-11 rounded-md border border-slate-300 px-3 text-sm" type="email" value={billingContactEmail} onChange={(event) => setBillingContactEmail(event.target.value)} placeholder="billing@example.org" /></label>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button disabled={serviceBusy || !serviceOverview?.subscription} onClick={() => void saveServiceContacts()}>Lưu liên hệ</Button>
+                    <Button variant="secondary" disabled={serviceBusy} onClick={() => void loadService()}>Làm mới</Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ) : null}
 
@@ -509,21 +930,46 @@ export function TenantCenter() {
                 <div className="flex items-start gap-3">
                   <Globe2 className="mt-0.5 h-5 w-5 text-slate-500" aria-hidden="true" />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-slate-950">Chưa có domain được tải qua API</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">Không dùng slug để giả định rằng một custom domain đã được cấu hình hoặc xác minh.</p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      {["Pending verification", "Verified", "Failed / expired"].map((state) => (
-                        <div key={state} className="rounded-lg bg-slate-50 px-3 py-3 text-xs font-medium text-slate-600">{state}</div>
+                    <h3 className="font-semibold text-slate-950">Custom domains</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">Backend phát hành DNS TXT challenge, kiểm tra ownership qua DNS provider và chỉ chuyển VERIFIED sau khi tìm thấy record đúng.</p>
+                    {actionError ? <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</div> : null}
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      <input value={domainInput} onChange={(event) => setDomainInput(event.target.value)} placeholder="portal.example.org" className="h-11 flex-1 rounded-md border border-slate-300 px-3 text-sm" />
+                      <Button disabled={domainBusy || !domainInput.trim()} onClick={() => void addDomain()}>Thêm domain</Button>
+                      <Button variant="secondary" disabled={domainBusy} onClick={() => void loadDomains()}>Làm mới</Button>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {domains.map((domain) => (
+                        <div key={domain.id} className="rounded-lg bg-slate-50 p-3">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                            <div className="font-mono text-sm font-semibold text-slate-900">{domain.hostname}</div>
+                            <div className="mt-1 text-xs text-slate-500">{domain.verificationStatus}{domain.verifiedAt ? ` · ${new Date(domain.verifiedAt).toLocaleString("vi-VN")}` : ""}</div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {domain.verificationStatus !== "VERIFIED" ? <Button variant="secondary" disabled={domainBusy} onClick={() => void issueDomainChallenge(domain.id)}>Tạo challenge</Button> : null}
+                              {domain.verificationChallenges?.[0]?.status === "PENDING" ? <Button disabled={domainBusy} onClick={() => void verifyDomain(domain.id)}>Kiểm tra DNS</Button> : null}
+                              <Button variant="secondary" disabled={domainBusy} onClick={() => void revokeDomain(domain.id)}>Gỡ domain</Button>
+                            </div>
+                          </div>
+                          {domain.verificationChallenges?.[0] ? (
+                            <div className="mt-3 rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                              <div className="font-semibold text-slate-800">TXT record cần cấu hình</div>
+                              <div className="mt-2 break-all"><span className="text-slate-400">Name:</span> <code>{domain.verificationChallenges[0].recordName}</code></div>
+                              <div className="mt-1 break-all"><span className="text-slate-400">Value:</span> <code>{domain.verificationChallenges[0].expectedValue}</code></div>
+                              <div className="mt-1">Status: {domain.verificationChallenges[0].status} · hết hạn {new Date(domain.verificationChallenges[0].expiresAt).toLocaleString("vi-VN")}</div>
+                            </div>
+                          ) : null}
+                        </div>
                       ))}
+                      {domains.length === 0 ? <p className="text-sm text-slate-500">Tenant chưa cấu hình custom domain.</p> : null}
                     </div>
                   </div>
                 </div>
               </div>
-              <EmptyIntegration
-                title="Domain API chưa được expose ở backend hiện tại"
-                description="Cần API danh sách, tạo domain, phát hành verification challenge, kiểm tra DNS và revoke. Token/challenge không được coi là quyền truy cập tenant."
-                endpoint="GET/POST /tenants/current/domains"
-              />
+              <ContractNotice title="DNS verification không tự xác nhận ở frontend">
+                Nút “Kiểm tra DNS” gọi backend DNS provider. UI không được tự chuyển trạng thái VERIFIED chỉ vì người dùng đã nhập record.
+              </ContractNotice>
             </div>
           ) : null}
 
@@ -566,11 +1012,53 @@ export function TenantCenter() {
                   </ol>
                 </CardContent>
               </Card>
-              <EmptyIntegration
-                title="Lifecycle mutation thuộc cấp nền tảng"
-                description="Tenant Owner không được tự bỏ qua quyết định suspend ở cấp platform. Cần endpoint có state-transition validation, reason, actor và lifecycle event/audit."
-                endpoint="POST /platform/tenants/:tenantId/transitions"
-              />
+              {actionError ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</div> : null}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader><h3 className="font-semibold text-slate-950">Retention policy</h3></CardHeader>
+                  <CardContent>
+                    {retentionPolicy ? (
+                      <dl>
+                        <DefinitionRow term="Grace period" value={`${retentionPolicy.gracePeriodDays} ngày`} />
+                        <DefinitionRow term="Retention" value={`${retentionPolicy.retentionDays} ngày`} />
+                        <DefinitionRow term="Disposition" value={retentionPolicy.disposition} />
+                        <DefinitionRow term="Export trước disposition" value={retentionPolicy.exportBeforeDisposition ? "Có" : "Không"} />
+                      </dl>
+                    ) : <p className="text-sm text-slate-500">Đang chờ policy từ backend.</p>}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader><h3 className="font-semibold text-slate-950">Tạo yêu cầu đóng</h3></CardHeader>
+                  <CardContent>
+                    <textarea className="min-h-28 w-full rounded-md border border-slate-300 p-3 text-sm" value={closureReason} onChange={(event) => setClosureReason(event.target.value)} placeholder="Lý do đóng tenant..." />
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="destructive" disabled={lifecycleBusy || !closureReason.trim()} onClick={() => void requestClosure()}>Yêu cầu đóng</Button>
+                      <Button variant="secondary" disabled={lifecycleBusy} onClick={() => void requestDataExport()}>Yêu cầu export JSON</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <Card>
+                <CardHeader><h3 className="font-semibold text-slate-950">Closure requests</h3></CardHeader>
+                <CardContent className="space-y-3">
+                  {closureRequests.map((closure) => (
+                    <div key={closure.id} className="rounded-lg bg-slate-50 p-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div><div className="font-semibold text-slate-900">{closure.status}</div><div className="mt-1 text-sm text-slate-600">{closure.reason}</div><div className="mt-1 text-xs text-slate-500">Scheduled: {new Date(closure.scheduledFor).toLocaleString("vi-VN")}</div></div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="secondary" disabled={lifecycleBusy} onClick={() => void requestDataExport(closure.id)}>Export</Button>
+                          {(closure.status === "REQUESTED" || closure.status === "APPROVED") ? <Button variant="secondary" disabled={lifecycleBusy} onClick={() => void cancelClosure(closure.id)}>Hủy yêu cầu</Button> : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {closureRequests.length === 0 ? <p className="text-sm text-slate-500">Không có closure request.</p> : null}
+                  {dataExports.length ? <p className="text-xs text-slate-500">Data export requests: {dataExports.map((item) => `${item.format}:${item.status}`).join(" · ")}</p> : null}
+                </CardContent>
+              </Card>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">
+                Lifecycle mutation hiện được thực thi tại <code className="font-mono">POST /platform/tenants/:tenantId/transitions</code>. Tenant Center chỉ hiển thị trạng thái; Platform Admin thực hiện transition ở Platform Console.
+              </div>
             </div>
           ) : null}
 
@@ -597,11 +1085,32 @@ export function TenantCenter() {
               <ContractNotice title="Không có support impersonation mặc định">
                 Giao diện không cung cấp nút “đăng nhập như tenant”. Nếu sau này có support access, token/quyền hỗ trợ phải tách khỏi membership nội bộ và không làm Platform Admin trở thành Owner hoặc Tenant Admin.
               </ContractNotice>
-              <EmptyIntegration
-                title="Support grant cần mô hình và API chuyên biệt"
-                description="Repo hiện chưa có endpoint cấp quyền hỗ trợ tạm thời. UI giữ contract nhưng không tạo grant giả hoặc lưu grant trong localStorage."
-                endpoint="POST /platform/tenant-support-grants"
-              />
+              {actionError ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</div> : null}
+              <Card>
+                <CardHeader><h3 className="font-semibold text-slate-950">Tạo support request</h3></CardHeader>
+                <CardContent>
+                  <textarea className="min-h-24 w-full rounded-md border border-slate-300 p-3 text-sm" value={supportReason} onChange={(event) => setSupportReason(event.target.value)} placeholder="Mô tả vấn đề cần Platform Support xử lý..." />
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="grid gap-2 text-sm font-medium text-slate-800">Scope<select className="h-11 rounded-md border border-slate-300 bg-white px-3" value={supportScope} onChange={(event) => setSupportScope(event.target.value)}><option value="member:read">member:read</option><option value="organization:read">organization:read</option><option value="organization:manage">organization:manage</option><option value="domain:read">domain:read</option><option value="domain:manage">domain:manage</option><option value="branding:read">branding:read</option><option value="branding:manage">branding:manage</option><option value="module:read">module:read</option></select></label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-800">Thời hạn<select className="h-11 rounded-md border border-slate-300 bg-white px-3" value={supportDuration} onChange={(event) => setSupportDuration(event.target.value)}><option value="30">30 phút</option><option value="60">60 phút</option><option value="120">120 phút</option><option value="240">240 phút</option></select></label>
+                  </div>
+                  <Button className="mt-4" disabled={supportBusy || !supportReason.trim()} onClick={() => void createSupportRequest()}>Gửi yêu cầu hỗ trợ</Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><h3 className="font-semibold text-slate-950">Support requests</h3></CardHeader>
+                <CardContent className="space-y-3">
+                  {supportRequests.map((item) => (
+                    <div key={item.id} className="rounded-lg bg-slate-50 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2"><div className="font-semibold text-slate-900">{item.status}</div><div className="text-xs text-slate-500">{item.requestedDurationMinutes} phút</div></div>
+                      <p className="mt-2 text-sm text-slate-700">{item.reason}</p>
+                      <p className="mt-1 font-mono text-xs text-slate-500">{item.requestedScopes.join(", ")}</p>
+                      {item.grant ? <p className="mt-2 text-xs text-slate-500">Grant tới {new Date(item.grant.expiresAt).toLocaleString("vi-VN")}{item.grant.revokedAt ? " · REVOKED" : ""}</p> : null}
+                    </div>
+                  ))}
+                  {supportRequests.length === 0 ? <p className="text-sm text-slate-500">Chưa có support request.</p> : null}
+                </CardContent>
+              </Card>
             </div>
           ) : null}
         </div>

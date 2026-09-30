@@ -26,7 +26,14 @@ export class PermissionGuard implements CanActivate {
     if (!permissions?.length) return true;
 
     const req = context.switchToHttp().getRequest<AppRequest>();
-    if (!req.membershipId || !req.tenantId) throw new ForbiddenException("Tenant context is required");
+    if (!req.tenantId) throw new ForbiddenException("Tenant context is required");
+    if (req.supportGrantId) {
+      const supportScopes = new Set(req.supportScopes ?? []);
+      const allowed = permissions.every((permission) => supportScopes.has(permission));
+      if (!allowed) throw new ForbiddenException("Support grant does not include the required scope");
+      return true;
+    }
+    if (!req.membershipId) throw new ForbiddenException("Tenant membership is required");
     const allowed = await this.rbac.hasAllPermissions(req.membershipId, permissions);
     if (!allowed) throw new ForbiddenException("Permission denied");
     return true;

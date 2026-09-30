@@ -99,7 +99,7 @@ export class AuthService {
   async selectTenant(user: AuthUser, tenantId: string, meta: { ip?: string; correlationId?: string }) {
     const membership = await this.prisma.membership.findFirst({
       where: { userId: user.userId, tenantId, status: MembershipStatus.ACTIVE, tenant: { status: "ACTIVE" } },
-      include: { tenant: true }
+      include: { tenant: { include: { tenantBranding: true } } }
     });
     if (!membership) throw new UnauthorizedException("Tenant is not available for this user");
     await this.audit.write({
@@ -113,7 +113,7 @@ export class AuthService {
       ipAddress: meta.ip
     });
     return {
-      tenant: membership.tenant,
+      tenant: this.withBrandingProjection(membership.tenant),
       membershipId: membership.id,
       accessToken: await this.signAccessToken({
         userId: user.userId,
@@ -149,14 +149,18 @@ export class AuthService {
   async listTenants(userId: string) {
     const memberships = await this.prisma.membership.findMany({
       where: { userId, status: MembershipStatus.ACTIVE, tenant: { status: "ACTIVE" } },
-      include: { tenant: true },
+      include: { tenant: { include: { tenantBranding: true } } },
       orderBy: { tenant: { name: "asc" } }
     });
     return memberships.map((membership) => ({
       membershipId: membership.id,
-      tenant: membership.tenant,
+      tenant: this.withBrandingProjection(membership.tenant),
       status: membership.status
     }));
+  }
+
+  private withBrandingProjection<T extends { brandColor: string; tenantBranding: { primaryColor: string | null } | null }>(tenant: T) {
+    return { ...tenant, brandColor: tenant.tenantBranding?.primaryColor ?? tenant.brandColor };
   }
 
   private safeUserSelect() {

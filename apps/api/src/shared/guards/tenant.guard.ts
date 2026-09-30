@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { MembershipStatus, TenantStatus } from "@prisma/client";
+import { MembershipStatus, TenantStatus, TenantSupportRequestStatus } from "@prisma/client";
 import { MODULE_KEY } from "../decorators/module.decorator";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
@@ -38,7 +38,12 @@ export class TenantGuard implements CanActivate {
     // A stale tenant context must not trap a platform user inside that tenant.
     if (!tenantRequired) return true;
 
-    const candidateTenantId = req.header("x-tenant-id") ?? req.user?.tenantId;
+    const headerTenantId = req.header("x-tenant-id");
+    if (req.user?.tenantId && headerTenantId && headerTenantId !== req.user.tenantId) {
+      throw new ForbiddenException("Tenant header does not match the scoped access token");
+    }
+
+    const candidateTenantId = req.user?.tenantId ?? headerTenantId;
     if (!candidateTenantId) throw new ForbiddenException("Tenant context is required");
 
     const membership = await this.prisma.membership.findFirst({
@@ -50,10 +55,34 @@ export class TenantGuard implements CanActivate {
       },
       select: { id: true, tenantId: true }
     });
-    if (!membership) throw new ForbiddenException("Tenant membership is not active or accessible");
+    if (!membership) {
+      const now = new Date();
+      const supportGrant = await this.prisma.tenantSupportGrant.findFirst({
+        where: {
+          tenantId: candidateTenantId,
+          platformUserId: req.user?.userId,
+          revokedAt: null,
+          startsAt: { lte: now },
+          expiresAt: { gt: now },
+          request: { status: TenantSupportRequestStatus.APPROVED },
+          tenant: { status: { in: [TenantStatus.ACTIVE, TenantStatus.SUSPENDED] } }
+        },
+        select: { id: true, tenantId: true, scopes: true },
+        orderBy: { expiresAt: "desc" }
+      });
+      if (!supportGrant) throw new ForbiddenException("Tenant membership or active support grant is required");
+
+      req.tenantId = supportGrant.tenantId;
+      req.membershipId = undefined;
+      req.supportGrantId = supportGrant.id;
+      req.supportScopes = supportGrant.scopes;
+      return true;
+    }
 
     req.tenantId = membership.tenantId;
     req.membershipId = membership.id;
+    req.supportGrantId = undefined;
+    req.supportScopes = undefined;
     return true;
   }
 }
