@@ -357,6 +357,84 @@ describeDb("Operations Hub baseline integration", () => {
     expect(await prisma.auditLog.count({ where: { tenantId: tenantA.tenant.id, entityType: "OrganizationUnit" } })).toBe(3);
   });
 
+  it("FR-ORG-003 keeps member unit and position history tenant-scoped", async () => {
+    const user = await createUser(prisma, "org-members-admin@example.test");
+    const permissions = [
+      PERMISSIONS.organizationRead,
+      PERMISSIONS.organizationManage,
+      PERMISSIONS.memberRead,
+      PERMISSIONS.memberManage
+    ];
+    const tenantA = await createTenantContext(prisma, auth, user, "org-members-a", permissions);
+    const tenantB = await createTenantContext(prisma, auth, user, "org-members-b", permissions);
+
+    const unitA1 = await prisma.organizationUnit.create({
+      data: { tenantId: tenantA.tenant.id, code: "COMMS", name: "Communications" }
+    });
+    const unitA2 = await prisma.organizationUnit.create({
+      data: { tenantId: tenantA.tenant.id, code: "TECH", name: "Technology" }
+    });
+    const unitB = await prisma.organizationUnit.create({
+      data: { tenantId: tenantB.tenant.id, code: "FOREIGN", name: "Foreign unit" }
+    });
+
+    const memberResponse = await request(app.getHttpServer())
+      .post("/members")
+      .set("authorization", `Bearer ${tenantA.token}`)
+      .set("x-tenant-id", tenantA.tenant.id)
+      .send({ email: "history-member@example.test", fullName: "History Member", unitId: unitA1.id })
+      .expect(201);
+    const membershipId = memberResponse.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/members/${membershipId}/units`)
+      .set("authorization", `Bearer ${tenantA.token}`)
+      .set("x-tenant-id", tenantA.tenant.id)
+      .send({ unitId: unitB.id, isPrimary: true })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post(`/members/${membershipId}/units`)
+      .set("authorization", `Bearer ${tenantA.token}`)
+      .set("x-tenant-id", tenantA.tenant.id)
+      .send({ unitId: unitA2.id, isPrimary: true })
+      .expect(201);
+
+    const unitHistory = await prisma.membershipUnit.findMany({
+      where: { membershipId },
+      orderBy: { effectiveFrom: "asc" }
+    });
+    expect(unitHistory).toHaveLength(2);
+    expect(unitHistory[0]).toMatchObject({ unitId: unitA1.id, isPrimary: false });
+    expect(unitHistory[0].effectiveTo).toBeTruthy();
+    expect(unitHistory[1]).toMatchObject({ unitId: unitA2.id, isPrimary: true, effectiveTo: null });
+
+    const positionResponse = await request(app.getHttpServer())
+      .post("/organization/positions")
+      .set("authorization", `Bearer ${tenantA.token}`)
+      .set("x-tenant-id", tenantA.tenant.id)
+      .send({ code: "TECH_HEAD", name: "Technology Head", unitId: unitA2.id })
+      .expect(201);
+    const positionId = positionResponse.body.id as string;
+
+    await request(app.getHttpServer())
+      .post(`/members/${membershipId}/positions`)
+      .set("authorization", `Bearer ${tenantA.token}`)
+      .set("x-tenant-id", tenantA.tenant.id)
+      .send({ positionId })
+      .expect(201);
+
+    const detail = await request(app.getHttpServer())
+      .get(`/members/${membershipId}`)
+      .set("authorization", `Bearer ${tenantA.token}`)
+      .set("x-tenant-id", tenantA.tenant.id)
+      .expect(200);
+    expect(detail.body.membershipUnits).toHaveLength(2);
+    expect(detail.body.membershipPositions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ positionId, effectiveTo: null })])
+    );
+  });
+
   it("FR-MOD-001 isolates module toggles and disabled module endpoints at backend", async () => {
     const user = await createUser(prisma, "module-admin@example.test");
     const permissions = [PERMISSIONS.moduleRead, PERMISSIONS.moduleManage, PERMISSIONS.financeRead];

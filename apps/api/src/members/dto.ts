@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString } from "class-validator";
 import { MembershipStatus } from "@prisma/client";
 
 export class CreateMemberDto {
@@ -15,6 +15,22 @@ export class CreateMemberDto {
   @IsOptional()
   @IsString()
   unitId?: string;
+
+  @IsOptional()
+  @IsString()
+  positionId?: string;
+
+  @IsOptional()
+  @IsString()
+  studentCode?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
 }
 
 export class UpdateMemberDto {
@@ -33,4 +49,30 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsString()
   bio?: string;
+
+  @IsOptional()
+  @IsString()
+  studentCode?: string;
+}
+
+export class AssignMembershipUnitDto {
+  @IsString()
+  unitId!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPrimary?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  effectiveFrom?: string;
+}
+
+export class AssignMembershipPositionDto {
+  @IsString()
+  positionId!: string;
+
+  @IsOptional()
+  @IsDateString()
+  effectiveFrom?: string;
 }

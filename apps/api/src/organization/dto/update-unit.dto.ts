@@ -11,6 +11,10 @@ export class UpdateOrganizationUnitDto {
 
   @IsOptional()
   @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsString()
   parentId?: string | null;
 
   @IsOptional()

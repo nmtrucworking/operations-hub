@@ -17,7 +17,6 @@ async function main() {
   await prisma.memberProfile.deleteMany();
   await prisma.membership.deleteMany();
   await prisma.session.deleteMany();
-  await prisma.unit.deleteMany();
   await prisma.tenantModule.deleteMany();
   await prisma.role.deleteMany();
   await prisma.dashboardMetric.deleteMany();
@@ -130,10 +129,20 @@ async function createTenant(input: {
       }
     }
   });
-  const unit = await prisma.unit.create({ data: { tenantId: tenant.id, name: "Executive Board" } });
-  await prisma.organizationUnit.create({
+  const organizationUnit = await prisma.organizationUnit.create({
     data: { tenantId: tenant.id, code: "EXEC", name: "Executive Board", sortOrder: 0 }
   });
+  const [ownerPosition, financePosition, memberPosition] = await Promise.all([
+    prisma.position.create({
+      data: { tenantId: tenant.id, unitId: organizationUnit.id, code: "CHAIR", name: "Chairperson", sortOrder: 0 }
+    }),
+    prisma.position.create({
+      data: { tenantId: tenant.id, unitId: organizationUnit.id, code: "FINANCE_OFFICER", name: "Finance Officer", sortOrder: 10 }
+    }),
+    prisma.position.create({
+      data: { tenantId: tenant.id, unitId: organizationUnit.id, code: "MEMBER", name: "Member", sortOrder: 20 }
+    })
+  ]);
   const account = await prisma.financeAccount.create({
     data: { tenantId: tenant.id, name: "Main Fund", currency: "VND", balance: 10000000 }
   });
@@ -182,10 +191,17 @@ async function createTenant(input: {
     input.permissionByCode
   );
 
-  const ownerMembership = await createMembership(owner.id, tenant.id, unit.id, "Owner", ownerRole.id);
+  const ownerMembership = await createMembership(
+    owner.id,
+    tenant.id,
+    organizationUnit.id,
+    ownerPosition.id,
+    "Owner",
+    ownerRole.id
+  );
   await prisma.ownershipAssignment.create({ data: { tenantId: tenant.id, membershipId: ownerMembership.id } });
-  await createMembership(finance.id, tenant.id, unit.id, "Finance Officer", financeRole.id);
-  await createMembership(member.id, tenant.id, unit.id, "Member", memberRole.id);
+  await createMembership(finance.id, tenant.id, organizationUnit.id, financePosition.id, "Finance Officer", financeRole.id);
+  await createMembership(member.id, tenant.id, organizationUnit.id, memberPosition.id, "Member", memberRole.id);
 
   await prisma.auditLog.create({
     data: {
@@ -224,7 +240,14 @@ async function createRoleWithPermissions(
   });
 }
 
-async function createMembership(userId: string, tenantId: string, unitId: string, title: string, roleId: string) {
+async function createMembership(
+  userId: string,
+  tenantId: string,
+  unitId: string,
+  positionId: string,
+  title: string,
+  roleId: string
+) {
   return prisma.membership.create({
     data: {
       userId,
@@ -232,7 +255,9 @@ async function createMembership(userId: string, tenantId: string, unitId: string
       status: "ACTIVE",
       title,
       joinedAt: new Date(),
-      profile: { create: { tenantId, unitId } },
+      profile: { create: { tenantId } },
+      membershipUnits: { create: { unitId, isPrimary: true } },
+      membershipPositions: { create: { positionId } },
       roles: { create: { roleId } }
     }
   });

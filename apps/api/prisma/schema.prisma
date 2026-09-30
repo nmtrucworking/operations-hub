@@ -219,7 +219,6 @@ model Tenant {
   positions               Position[]
   membershipInvitations   MembershipInvitation[]
   skills                  Skill[]
-  units                   Unit[]
   roles                   Role[]
   delegationPolicies      DelegationPolicy[]
   tenantPreferences       TenantPreference[]
@@ -293,21 +292,6 @@ model TenantModule {
   @@index([moduleId])
 }
 
-model Unit {
-  id        String          @id @default(uuid())
-  tenantId  String
-  name      String
-  parentId  String?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  parent    Unit?           @relation("UnitTree", fields: [parentId], references: [id])
-  children  Unit[]          @relation("UnitTree")
-  members   MemberProfile[]
-
-  @@index([tenantId])
-}
-
 model Membership {
   id                          String                     @id @default(uuid())
   userId                      String
@@ -370,7 +354,6 @@ model MemberProfile {
   id           String     @id @default(uuid())
   membershipId String     @unique
   tenantId     String
-  unitId       String?
   studentCode  String?
   phone        String?
   skills       String[]   @default([])
@@ -378,7 +361,6 @@ model MemberProfile {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-  unit         Unit?      @relation(fields: [unitId], references: [id])
 
   @@index([tenantId])
 }
@@ -749,16 +731,25 @@ model OwnershipAssignment {
 }
 
 model OrganizationProfile {
-  id           String   @id @default(uuid())
-  tenantId     String   @unique
-  displayName  String
-  description  String?
-  contactEmail String?
-  address      String?
-  metadata     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(uuid())
+  tenantId           String   @unique
+  displayName        String
+  shortName          String?
+  code               String?
+  organizationType   String?
+  description        String?
+  logoUrl            String?
+  establishedAt      DateTime?
+  contactEmail       String?
+  websiteUrl         String?
+  socialLinks        Json?
+  parentOrganization String?
+  address            String?
+  status             String   @default("ACTIVE")
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model OrganizationUnit {
@@ -767,6 +758,7 @@ model OrganizationUnit {
   parentId        String?
   code            String
   name            String
+  description     String?
   status          String             @default("ACTIVE")
   sortOrder       Int                @default(0)
   createdAt       DateTime           @default(now())
@@ -790,6 +782,9 @@ model Position {
   unitId              String?
   code                String
   name                String
+  description         String?
+  status              String               @default("ACTIVE")
+  sortOrder           Int                  @default(0)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)

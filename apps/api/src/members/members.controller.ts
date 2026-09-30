@@ -5,7 +5,12 @@ import { RequireModule } from "../shared/decorators/module.decorator";
 import { Permissions } from "../shared/decorators/permissions.decorator";
 import { TenantId } from "../shared/decorators/tenant-id.decorator";
 import { AppRequest } from "../shared/request-context";
-import { CreateMemberDto, UpdateMemberDto } from "./dto";
+import {
+  AssignMembershipPositionDto,
+  AssignMembershipUnitDto,
+  CreateMemberDto,
+  UpdateMemberDto
+} from "./dto";
 import { MembersService } from "./members.service";
 
 @ApiBearerAuth()
@@ -21,6 +26,12 @@ export class MembersController {
     return this.members.list(tenantId, Number(page) || 1, Number(limit) || 20);
   }
 
+  @Get(":id")
+  @Permissions(PERMISSIONS.memberRead)
+  get(@TenantId() tenantId: string, @Param("id") id: string) {
+    return this.members.get(tenantId, id);
+  }
+
   @Post()
   @Permissions(PERMISSIONS.memberManage)
   create(@TenantId() tenantId: string, @Body() dto: CreateMemberDto, @Req() req: AppRequest) {
@@ -31,5 +42,49 @@ export class MembersController {
   @Permissions(PERMISSIONS.memberManage)
   update(@TenantId() tenantId: string, @Param("id") id: string, @Body() dto: UpdateMemberDto, @Req() req: AppRequest) {
     return this.members.update(tenantId, req.user!.userId, id, dto, req.correlationId);
+  }
+
+  @Post(":id/units")
+  @Permissions(PERMISSIONS.memberManage)
+  assignUnit(
+    @TenantId() tenantId: string,
+    @Param("id") id: string,
+    @Body() dto: AssignMembershipUnitDto,
+    @Req() req: AppRequest
+  ) {
+    return this.members.assignUnit(tenantId, req.user!.userId, id, dto, req.correlationId);
+  }
+
+  @Post(":id/units/:unitId/end")
+  @Permissions(PERMISSIONS.memberManage)
+  endUnit(
+    @TenantId() tenantId: string,
+    @Param("id") id: string,
+    @Param("unitId") unitId: string,
+    @Req() req: AppRequest
+  ) {
+    return this.members.endUnit(tenantId, req.user!.userId, id, unitId, req.correlationId);
+  }
+
+  @Post(":id/positions")
+  @Permissions(PERMISSIONS.memberManage)
+  assignPosition(
+    @TenantId() tenantId: string,
+    @Param("id") id: string,
+    @Body() dto: AssignMembershipPositionDto,
+    @Req() req: AppRequest
+  ) {
+    return this.members.assignPosition(tenantId, req.user!.userId, id, dto, req.correlationId);
+  }
+
+  @Post(":id/positions/:positionId/end")
+  @Permissions(PERMISSIONS.memberManage)
+  endPosition(
+    @TenantId() tenantId: string,
+    @Param("id") id: string,
+    @Param("positionId") positionId: string,
+    @Req() req: AppRequest
+  ) {
+    return this.members.endPosition(tenantId, req.user!.userId, id, positionId, req.correlationId);
   }
 }

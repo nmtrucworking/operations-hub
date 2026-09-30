@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Building2, Coins, FileText, Shield, Users } from "lucide-react";
+import { BarChart3, Building2, Coins, FileText, Network, Shield, Users } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { clearSession, readSession, selectTenant, SessionState } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/tenant", label: "Tenant", icon: Building2 },
-  { href: "/members", label: "Members", icon: Users },
+  { href: "/organization", label: "Tổ chức", icon: Network },
+  { href: "/members", label: "Thành viên", icon: Users },
   { href: "/roles", label: "Roles", icon: Shield },
   { href: "/requests", label: "Requests", icon: FileText },
   { href: "/finance", label: "Finance", icon: Coins }
