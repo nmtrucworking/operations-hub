@@ -7,6 +7,7 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { FinanceModule } from "./finance/finance.module";
 import { HealthController } from "./health.controller";
 import { MembersModule } from "./members/members.module";
+import { MeetingsModule } from "./meetings/meetings.module";
 import { ModulesModule } from "./modules/modules.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RbacModule } from "./rbac/rbac.module";
@@ -31,6 +32,7 @@ import { UsersModule } from "./users/users.module";
     TenantsModule,
     RbacModule,
     MembersModule,
+    MeetingsModule,
     RequestsModule,
     FinanceModule,
     DashboardModule,

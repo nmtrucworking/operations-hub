@@ -5,7 +5,7 @@ import { RequireModule } from "../shared/decorators/module.decorator";
 import { Permissions } from "../shared/decorators/permissions.decorator";
 import { TenantId } from "../shared/decorators/tenant-id.decorator";
 import { AppRequest } from "../shared/request-context";
-import { CreateFinanceTransactionDto, UpdateFinanceTransactionDto } from "./dto";
+import { CreateFinanceTransactionDto, FinanceDecisionDto, UpdateFinanceTransactionDto } from "./dto";
 import { FinanceService } from "./finance.service";
 
 @ApiBearerAuth()
@@ -30,7 +30,7 @@ export class FinanceController {
   @Post("transactions")
   @Permissions(PERMISSIONS.financeManage)
   createTransaction(@TenantId() tenantId: string, @Body() dto: CreateFinanceTransactionDto, @Req() req: AppRequest) {
-    return this.finance.createTransaction(tenantId, req.user!.userId, dto, req.correlationId);
+    return this.finance.createTransaction(tenantId, req.user!.userId, req.membershipId!, dto, req.correlationId);
   }
 
   @Patch("transactions/:id")
@@ -41,6 +41,34 @@ export class FinanceController {
     @Body() dto: UpdateFinanceTransactionDto,
     @Req() req: AppRequest
   ) {
-    return this.finance.updateTransaction(tenantId, req.user!.userId, id, dto, req.correlationId);
+    return this.finance.updateTransaction(tenantId, req.user!.userId, req.membershipId!, id, dto, req.correlationId);
+  }
+
+  @Post("transactions/:id/submit")
+  @Permissions(PERMISSIONS.financeManage)
+  submit(@TenantId() tenantId: string, @Param("id") id: string, @Req() req: AppRequest) {
+    return this.finance.submit(tenantId, req.user!.userId, req.membershipId!, id, req.correlationId);
+  }
+
+  @Post("transactions/:id/approve")
+  @Permissions(PERMISSIONS.financeApprove)
+  approve(
+    @TenantId() tenantId: string,
+    @Param("id") id: string,
+    @Body() dto: FinanceDecisionDto,
+    @Req() req: AppRequest
+  ) {
+    return this.finance.approve(tenantId, req.user!.userId, req.membershipId!, id, dto, req.correlationId);
+  }
+
+  @Post("transactions/:id/reject")
+  @Permissions(PERMISSIONS.financeApprove)
+  reject(
+    @TenantId() tenantId: string,
+    @Param("id") id: string,
+    @Body() dto: FinanceDecisionDto,
+    @Req() req: AppRequest
+  ) {
+    return this.finance.reject(tenantId, req.user!.userId, req.membershipId!, id, dto, req.correlationId);
   }
 }

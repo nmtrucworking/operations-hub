@@ -46,6 +46,7 @@ export enum ModuleKey {
   Members = "members",
   Requests = "requests",
   Finance = "finance",
+  Meetings = "meetings",
   Dashboard = "dashboard",
   Audit = "audit"
 }
@@ -96,8 +97,12 @@ export const PERMISSIONS = {
   memberManage: "member:manage",
   requestRead: "request:read",
   requestManage: "request:manage",
+  requestApprove: "request:approve",
   financeRead: "finance:read",
   financeManage: "finance:manage",
+  financeApprove: "finance:approve",
+  meetingRead: "meeting:read",
+  meetingManage: "meeting:manage",
   dashboardRead: "dashboard:read",
   auditRead: "audit:read"
 } as const;
@@ -108,6 +113,7 @@ export const MODULES = [
   { key: ModuleKey.Members, name: "Members", requiredPermissions: [PERMISSIONS.memberRead] },
   { key: ModuleKey.Requests, name: "Requests", requiredPermissions: [PERMISSIONS.requestRead] },
   { key: ModuleKey.Finance, name: "Finance", requiredPermissions: [PERMISSIONS.financeRead] },
+  { key: ModuleKey.Meetings, name: "Meetings", requiredPermissions: [PERMISSIONS.meetingRead] },
   { key: ModuleKey.Dashboard, name: "Dashboard", requiredPermissions: [PERMISSIONS.dashboardRead] },
   { key: ModuleKey.Audit, name: "Audit", requiredPermissions: [PERMISSIONS.auditRead] }
 ] as const;

@@ -3,21 +3,24 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Building2, Coins, FileText, Network, Shield, Users } from "lucide-react";
+import { BarChart3, Building2, CalendarDays, Coins, FileText, Network, Shield, Users } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
-import { clearSession, readSession, selectTenant, SessionState } from "@/lib/api";
+import { apiFetch, clearSession, readSession, selectTenant, SessionState } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const navItems: { href: string; label: string; icon: typeof BarChart3; moduleKey?: string }[] = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/tenant", label: "Tenant", icon: Building2 },
   { href: "/organization", label: "Tổ chức", icon: Network },
   { href: "/members", label: "Thành viên", icon: Users },
   { href: "/roles", label: "Roles", icon: Shield },
-  { href: "/requests", label: "Requests", icon: FileText },
-  { href: "/finance", label: "Finance", icon: Coins }
+  { href: "/requests", label: "Requests", icon: FileText, moduleKey: "requests" },
+  { href: "/finance", label: "Finance", icon: Coins, moduleKey: "finance" },
+  { href: "/meetings", label: "Họp", icon: CalendarDays, moduleKey: "meetings" }
 ];
+
+type ModuleState = { key: string; isEnabled: boolean };
 
 function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -29,14 +32,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionState | null>(null);
   const [switchingTenantId, setSwitchingTenantId] = useState("");
   const [tenantError, setTenantError] = useState("");
+  const [enabledModules, setEnabledModules] = useState<Set<string> | null>(null);
 
   useEffect(() => {
-    setSession(readSession());
+    const current = readSession();
+    setSession(current);
+    if (current?.tenantId) {
+      apiFetch<ModuleState[]>("/modules")
+        .then((response) => setEnabledModules(new Set(response.data.filter((module) => module.isEnabled).map((module) => module.key))))
+        .catch(() => setEnabledModules(null));
+    }
   }, []);
 
   const activeTenant = useMemo(
     () => session?.tenants?.find((item) => item.tenant.id === session.tenantId),
     [session]
+  );
+  const visibleNavItems = useMemo(
+    () => navItems.filter((item) => !item.moduleKey || enabledModules === null || enabledModules.has(item.moduleKey)),
+    [enabledModules]
   );
 
   async function switchTenant(tenantId: string) {
@@ -68,7 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="truncate text-xs text-slate-500">{session?.user?.email ?? "Đang tải phiên..."}</div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Điều hướng nghiệp vụ">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActivePath(pathname, item.href);
             return (
@@ -139,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : null}
           <nav className="flex gap-1 overflow-x-auto border-t border-slate-100 px-3 py-2 md:hidden" aria-label="Điều hướng di động">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

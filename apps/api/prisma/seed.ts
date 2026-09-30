@@ -6,6 +6,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.auditLog.deleteMany();
+  await prisma.attendanceRecord.deleteMany();
+  await prisma.meetingParticipant.deleteMany();
+  await prisma.meeting.deleteMany();
+  await prisma.transactionApproval.deleteMany();
   await prisma.financeTransaction.deleteMany();
   await prisma.financeAccount.deleteMany();
   await prisma.requestApproval.deleteMany();
@@ -64,6 +68,7 @@ async function main() {
         tenantId: demo.tenant.id,
         typeId: requestType.id,
         creatorId: demo.member.id,
+        creatorMembershipId: demo.memberMembership.id,
         title: "Room booking for workshop",
         description: "Need room A for the member onboarding workshop.",
         status: "SUBMITTED"
@@ -72,6 +77,7 @@ async function main() {
         tenantId: demo.tenant.id,
         typeId: requestType.id,
         creatorId: demo.finance.id,
+        creatorMembershipId: demo.financeMembership.id,
         title: "Reimburse event materials",
         description: "Receipt attached in offline archive.",
         status: "IN_REVIEW"
@@ -84,11 +90,43 @@ async function main() {
       tenantId: demo.tenant.id,
       accountId: demo.account.id,
       createdById: demo.finance.id,
+      creatorMembershipId: demo.financeMembership.id,
       type: "EXPENSE",
       status: "PENDING_APPROVAL",
       amount: 1500000,
       category: "Event",
       description: "Workshop materials"
+    }
+  });
+
+  const meeting = await prisma.meeting.create({
+    data: {
+      tenantId: demo.tenant.id,
+      unitId: demo.organizationUnit.id,
+      createdByMembershipId: demo.ownerMembership.id,
+      type: "MEETING",
+      title: "Họp Ban điều hành",
+      description: "Cuộc họp mẫu cho luồng Meeting + Attendance.",
+      location: "Phòng sinh hoạt CLB",
+      startAt: new Date(),
+      endAt: new Date(Date.now() + 90 * 60 * 1000),
+      status: "ONGOING",
+      participants: {
+        create: [
+          { membershipId: demo.ownerMembership.id, participantRole: "CHAIR", invitationStatus: "ACCEPTED" },
+          { membershipId: demo.financeMembership.id, participantRole: "ATTENDEE", invitationStatus: "ACCEPTED" },
+          { membershipId: demo.memberMembership.id, participantRole: "ATTENDEE", invitationStatus: "ACCEPTED" }
+        ]
+      }
+    }
+  });
+  await prisma.attendanceRecord.create({
+    data: {
+      meetingId: meeting.id,
+      membershipId: demo.ownerMembership.id,
+      status: "PRESENT",
+      checkInAt: new Date(),
+      markedByMembershipId: demo.ownerMembership.id
     }
   });
 
@@ -171,6 +209,8 @@ async function createTenant(input: {
       PERMISSIONS.requestRead,
       PERMISSIONS.financeRead,
       PERMISSIONS.financeManage,
+      PERMISSIONS.financeApprove,
+      PERMISSIONS.meetingRead,
       PERMISSIONS.dashboardRead,
       PERMISSIONS.auditRead
     ],
@@ -186,6 +226,7 @@ async function createTenant(input: {
       PERMISSIONS.memberRead,
       PERMISSIONS.requestRead,
       PERMISSIONS.requestManage,
+      PERMISSIONS.meetingRead,
       PERMISSIONS.dashboardRead
     ],
     input.permissionByCode
@@ -200,8 +241,22 @@ async function createTenant(input: {
     ownerRole.id
   );
   await prisma.ownershipAssignment.create({ data: { tenantId: tenant.id, membershipId: ownerMembership.id } });
-  await createMembership(finance.id, tenant.id, organizationUnit.id, financePosition.id, "Finance Officer", financeRole.id);
-  await createMembership(member.id, tenant.id, organizationUnit.id, memberPosition.id, "Member", memberRole.id);
+  const financeMembership = await createMembership(
+    finance.id,
+    tenant.id,
+    organizationUnit.id,
+    financePosition.id,
+    "Finance Officer",
+    financeRole.id
+  );
+  const memberMembership = await createMembership(
+    member.id,
+    tenant.id,
+    organizationUnit.id,
+    memberPosition.id,
+    "Member",
+    memberRole.id
+  );
 
   await prisma.auditLog.create({
     data: {
@@ -215,7 +270,7 @@ async function createTenant(input: {
     }
   });
 
-  return { tenant, owner, finance, member, account, ownerMembership };
+  return { tenant, owner, finance, member, account, organizationUnit, ownerMembership, financeMembership, memberMembership };
 }
 
 async function createRoleWithPermissions(

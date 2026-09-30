@@ -1,5 +1,5 @@
-import { IsEnum, IsNumber, IsOptional, IsString, Min } from "class-validator";
-import { FinanceTransactionStatus, FinanceTransactionType } from "@prisma/client";
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { FinanceTransactionType } from "@prisma/client";
 
 export class CreateFinanceTransactionDto {
   @IsString()
@@ -17,15 +17,36 @@ export class CreateFinanceTransactionDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(4000)
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  sourceRequestId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  occurredAt?: string;
 }
 
 export class UpdateFinanceTransactionDto {
   @IsOptional()
-  @IsEnum(FinanceTransactionStatus)
-  status?: FinanceTransactionStatus;
+  @IsString()
+  @MaxLength(4000)
+  description?: string;
 
   @IsOptional()
   @IsString()
-  description?: string;
+  category?: string;
+
+  @IsOptional()
+  @IsDateString()
+  occurredAt?: string;
+}
+
+export class FinanceDecisionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
 }

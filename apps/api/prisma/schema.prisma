@@ -27,6 +27,7 @@ enum RequestStatus {
   APPROVED
   REJECTED
   CANCELLED
+  COMPLETED
 }
 
 enum ApprovalStatus {
@@ -40,6 +41,7 @@ enum FinanceTransactionStatus {
   DRAFT
   PENDING_APPROVAL
   APPROVED
+  REJECTED
   RECORDED
   VOID
 }
@@ -325,7 +327,9 @@ model Membership {
   assetAssignments            AssetAssignment[]          @relation("AssetAssignmentHolder")
   assetCheckouts              AssetCheckout[]            @relation("AssetCheckoutBorrower")
   meetingParticipants         MeetingParticipant[]
-  attendanceRecords           AttendanceRecord[]
+  meetingsCreated             Meeting[]                  @relation("MeetingCreator")
+  attendanceRecords           AttendanceRecord[]         @relation("AttendanceSubject")
+  attendanceMarked            AttendanceRecord[]         @relation("AttendanceMarker")
   ownedAgendaItems            AgendaItem[]
   meetingActionItems          MeetingActionItem[]
   disciplineCases             DisciplineCase[]           @relation("DisciplineSubject")
@@ -453,6 +457,7 @@ model Request {
   attachments         RequestAttachment[]
   comments            RequestComment[]
   statusHistory       RequestStatusHistory[]
+  financeTransactions FinanceTransaction[]   @relation("FinanceSourceRequest")
 
   @@index([tenantId, status])
   @@index([creatorMembershipId])
@@ -496,6 +501,7 @@ model FinanceTransaction {
   tenantId            String
   accountId           String
   categoryId          String?
+  sourceRequestId     String?
   createdById         String
   creatorMembershipId String?
   type                FinanceTransactionType
@@ -510,6 +516,7 @@ model FinanceTransaction {
   tenant              Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   account             FinanceAccount           @relation(fields: [accountId], references: [id])
   financeCategory     FinanceCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sourceRequest       Request?                 @relation("FinanceSourceRequest", fields: [sourceRequestId], references: [id], onDelete: SetNull)
   createdBy           User                     @relation("FinanceCreator", fields: [createdById], references: [id])
   creatorMembership   Membership?              @relation("FinanceCreatorMembership", fields: [creatorMembershipId], references: [id], onDelete: SetNull)
   ledgerEntries       LedgerEntry[]
@@ -518,6 +525,7 @@ model FinanceTransaction {
 
   @@index([tenantId, status])
   @@index([categoryId])
+  @@index([sourceRequestId])
   @@index([creatorMembershipId])
 }
 
@@ -731,8 +739,8 @@ model OwnershipAssignment {
 }
 
 model OrganizationProfile {
-  id                 String   @id @default(uuid())
-  tenantId           String   @unique
+  id                 String    @id @default(uuid())
+  tenantId           String    @unique
   displayName        String
   shortName          String?
   code               String?
@@ -745,11 +753,11 @@ model OrganizationProfile {
   socialLinks        Json?
   parentOrganization String?
   address            String?
-  status             String   @default("ACTIVE")
+  status             String    @default("ACTIVE")
   metadata           Json?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model OrganizationUnit {
@@ -1650,26 +1658,31 @@ model MaintenanceRecord {
 }
 
 model Meeting {
-  id                String               @id @default(uuid())
-  tenantId          String
-  type              String
-  title             String
-  startAt           DateTime
-  endAt             DateTime?
-  status            String               @default("DRAFT")
-  unitId            String?
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
-  tenant            Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  unit              OrganizationUnit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  participants      MeetingParticipant[]
-  attendanceRecords AttendanceRecord[]
-  agendaItems       AgendaItem[]
-  minute            MeetingMinute?
-  actionItems       MeetingActionItem[]
+  id                    String               @id @default(uuid())
+  tenantId              String
+  type                  String
+  title                 String
+  description           String?
+  startAt               DateTime
+  endAt                 DateTime?
+  location              String?
+  status                String               @default("DRAFT")
+  unitId                String?
+  createdByMembershipId String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  tenant                Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit                  OrganizationUnit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  createdByMembership   Membership?          @relation("MeetingCreator", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  participants          MeetingParticipant[]
+  attendanceRecords     AttendanceRecord[]
+  agendaItems           AgendaItem[]
+  minute                MeetingMinute?
+  actionItems           MeetingActionItem[]
 
   @@index([tenantId, startAt])
   @@index([unitId])
+  @@index([createdByMembershipId])
 }
 
 model MeetingParticipant {
@@ -1685,18 +1698,21 @@ model MeetingParticipant {
 }
 
 model AttendanceRecord {
-  id           String     @id @default(uuid())
-  meetingId    String
-  membershipId String
-  status       String
-  checkInAt    DateTime?
-  checkOutAt   DateTime?
-  note         String?
-  meeting      Meeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  id                   String      @id @default(uuid())
+  meetingId            String
+  membershipId         String
+  status               String
+  checkInAt            DateTime?
+  checkOutAt           DateTime?
+  note                 String?
+  markedByMembershipId String?
+  meeting              Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  membership           Membership  @relation("AttendanceSubject", fields: [membershipId], references: [id], onDelete: Cascade)
+  markedByMembership   Membership? @relation("AttendanceMarker", fields: [markedByMembershipId], references: [id], onDelete: SetNull)
 
   @@unique([meetingId, membershipId])
   @@index([membershipId])
+  @@index([markedByMembershipId])
 }
 
 model AgendaItem {
