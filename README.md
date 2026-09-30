@@ -38,6 +38,9 @@ Equivalent commands:
 
 Demo users all use password `Password123!`:
 
+- `platform.admin@demo.example` (`PLATFORM_ADMIN`)
+- `platform.reviewer@demo.example` (`PLATFORM_REVIEWER`)
+- `platform.support@demo.example` (`PLATFORM_SUPPORT`)
 - `owner@demo.example`
 - `finance@demo.example`
 - `member@demo.example`

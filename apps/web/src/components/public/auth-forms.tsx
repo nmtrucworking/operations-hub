@@ -74,9 +74,15 @@ export function LoginForm() {
         accessToken: login.data.accessToken,
         refreshToken: remember ? login.data.refreshToken : undefined,
         user: login.data.user,
-        tenants: login.data.tenants,
-        tenantId: firstTenant?.tenant.id
+        tenants: login.data.tenants
       });
+      const returnTo = safeReturnTo(searchParams.get("returnTo"));
+
+      if (login.data.user?.platformRole) {
+        router.push(returnTo?.startsWith("/platform/") ? returnTo : "/platform/tenants");
+        return;
+      }
+
       if (firstTenant) {
         const selected = await apiFetch<SelectTenantResponse>("/auth/select-tenant", {
           method: "POST",
@@ -87,9 +93,12 @@ export function LoginForm() {
           refreshToken: remember ? login.data.refreshToken : undefined,
           user: login.data.user,
           tenants: login.data.tenants,
-          tenantId: selected.data.tenant.id
+          tenantId: selected.data.tenant.id,
+          membershipId: selected.data.membershipId
         });
-        router.push(safeReturnTo(searchParams.get("returnTo")) ?? "/dashboard");
+        router.push(returnTo ?? "/dashboard");
+      } else if (returnTo) {
+        router.push(returnTo);
       } else {
         router.push("/start");
       }

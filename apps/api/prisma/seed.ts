@@ -1,31 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
-import { MODULES, PERMISSIONS } from "@operations-hub/shared";
+import { MODULES, PERMISSIONS, PlatformRole } from "@operations-hub/shared";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.auditLog.deleteMany();
-  await prisma.attendanceRecord.deleteMany();
-  await prisma.meetingParticipant.deleteMany();
-  await prisma.meeting.deleteMany();
-  await prisma.transactionApproval.deleteMany();
-  await prisma.financeTransaction.deleteMany();
-  await prisma.financeAccount.deleteMany();
-  await prisma.requestApproval.deleteMany();
-  await prisma.request.deleteMany();
-  await prisma.requestType.deleteMany();
-  await prisma.membershipRole.deleteMany();
-  await prisma.rolePermission.deleteMany();
-  await prisma.permission.deleteMany();
-  await prisma.memberProfile.deleteMany();
-  await prisma.membership.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.tenantModule.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.dashboardMetric.deleteMany();
-  await prisma.tenant.deleteMany();
-  await prisma.user.deleteMany();
+  await resetDatabase();
 
   const permissionRows = await Promise.all(
     Object.values(PERMISSIONS).map((code) =>
@@ -36,6 +16,29 @@ async function main() {
   );
   const permissionByCode = new Map(permissionRows.map((permission) => [permission.code, permission]));
   const passwordHash = await bcrypt.hash("Password123!", 12);
+
+  await prisma.user.createMany({
+    data: [
+      {
+        email: "platform.admin@demo.example",
+        fullName: "Platform Admin",
+        passwordHash,
+        platformRole: PlatformRole.PlatformAdmin
+      },
+      {
+        email: "platform.reviewer@demo.example",
+        fullName: "Platform Reviewer",
+        passwordHash,
+        platformRole: PlatformRole.PlatformReviewer
+      },
+      {
+        email: "platform.support@demo.example",
+        fullName: "Platform Support",
+        passwordHash,
+        platformRole: PlatformRole.PlatformSupport
+      }
+    ]
+  });
 
   const demo = await createTenant({
     name: "Demo Operations",
@@ -136,6 +139,15 @@ async function main() {
       { tenantId: demo.tenant.id, key: "requestSla", label: "Request SLA", value: 86, unit: "%" }
     ]
   });
+}
+
+async function resetDatabase() {
+  const tables = await prisma.$queryRawUnsafe<Array<{ tablename: string }>>(
+    `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`
+  );
+  if (!tables.length) return;
+  const quoted = tables.map(({ tablename }) => `"${tablename.replaceAll('"', '""')}"`).join(", ");
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`);
 }
 
 async function createTenant(input: {
